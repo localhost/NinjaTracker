@@ -101,7 +101,6 @@ tbednoabsarp:   jmp tblrightedit
 tbinsdone:
 tbdeldone:
 tbeddone:       rts
-
 tblins:         jsr gettblptr
                 lda tbllen,x
                 cmp tblrow,x
@@ -373,4 +372,5 @@ cwtblstore:     sta nt_wavetbl,x
                 cpx tbllen
                 bcc cwtblloop
                 jmp copyglobalsettings      ;Copy global settings to playroutines
+
 

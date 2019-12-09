@@ -60,22 +60,30 @@ playtestnote:   cmp #KEYOFF
                 bcc ptnskip
                 ldx playflag
                 bne ptnskip
+                lsr
                 sta var1
+                jsr ptnwait
                 ldy tracknum
                 ldx chnregindex,y
                 lda testnotecmd
                 sta nt_chncmd,x
                 bmi ptnskiphr
-                jsr ptnwait
                 lda hrparam
-                sta nt_chnsr,x
+                sta $d406,x
+                pha
+                pla
+                pha
+                pla
+                pha
+                pla
                 lda #$fe
                 sta nt_chngate,x
-ptnskiphr:      jsr ptnwait
-                lda var1
-                lsr
+                and nt_chnwave,x
+                sta $d404,x
+                jsr ptnwait
+ptnskiphr:      lda var1
                 sta nt_chnnewnote,x
-                lda #$00
+                lda #$01
                 sta nt_chncounter,x
                 jsr ptnwait
                 lda #$ff
@@ -104,13 +112,6 @@ silenceall:     lda #$fe
                 sta nt_chngate+7
                 sta nt_chngate+14
                 lda #$00
-                sta nt_chnsr
-                sta nt_chnsr+7
-                sta nt_chnsr+14
-                rts
-
-
-   lda #$00
                 sta $d406
                 sta $d406+7
                 sta $d406+14

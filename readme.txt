@@ -1,4 +1,4 @@
-NinjaTracker V2.02
+NinjaTracker V2.03
 ------------------
 
 Contents:
@@ -20,11 +20,12 @@ ins2nt2.exe
 - Sourcecode of the editor & example. DASM, Pucrunch and c64tools package from
   http://covertbitops.c64.org are required to rebuild.
 
+Example tune "EfnCold" by Adam Morton.
 
 
 1. Introduction
                                         
-NinjaTracker V2.x is still a somewhat  minimal music editor. Main differences
+NinjaTracker V2.x is still a somewhat minimal music editor. Main differences
 to previous versions are general purpose commands (or instruments), two-column
 tables and a slide function that knows to stop at the target pitch.
 
@@ -40,16 +41,16 @@ email: loorni@gmail.com
 2.1 General keys
 
   F1          Play from beginning       
-  F3          Stop playing              
+  F3          Stop playing
   F4          Switch note entry (PT/DMC)
   F5          Play from mark            
   F6          Adjust colors             
   F7          Toggle fastforward        
-  F8          Enter help screen         
+  F8          Enter help screen
   <-          Enter disk menu
   /           Silence test notes        
   <>          Fast scroll up/down       
-  [] or ,.    Select octave             
+  [] or ,.    Select octave
   0-9,A-F     Edit hexadecimal data
   Cursors     Move around               
   Ins/Del     Delete rows               
@@ -78,12 +79,12 @@ email: loorni@gmail.com
   Q2W3ER5T6.. Upper octave notes (PT)
   Space       Enter keyoff/clear column
   Shift+Space Enter keyon               
-  Shift+Q     Transpose halfstep down   
+  Shift+Q     Transpose halfstep down
   Shift+A     Transpose halfstep up     
   Shift+L     Toggle command legato     
   Shift+O     Optimize pattern          
   Return      Fill with above note      
-                                        
+
 2.4 Command editor special keys         
                                         
   Space       Keyoff test note          
@@ -111,16 +112,17 @@ Values in the track data:
   80-BF Transpose downwards             
   C0-FF Transpose upwards (C0 = zero)   
                                         
-The combined length of a subtune's all tracks cannot exceed 256 bytes.
+Transpose cannot be followed by loop, and the combined length of a subtune's
+all tracks cannot exceed 256 bytes.
 
 A subtune that plays only once can be realized by playing a silent pattern
 (with just a long keyoff note) last and looping to it indefinitely.
 
-3.2 Pattern data                        
+3.2 Pattern data
                                         
 A pattern consists of four columns. From left to right they are:
 
-  Note/Keyoff/Keyon                     
+  Note/Keyoff/Keyon
   Command number 01-7F, or legato 81-FF 
   Duration (using decimal notation)     
   Command name (not editable)           
@@ -133,16 +135,13 @@ Command numbers 81-FF are the commands 01-7F called in legato mode. In legato
 mode hardrestart, init frame waveform setup and auto-keyon will be skipped
 (when used with a note), as well as ADSR setup; only the table pointers are set.
 
-Duration minimum is 2 and maximum is 65. However, for the last step of a pattern
-the minimum duration is 3, if there is a transpose or song loop coming up, or
-4 if both transpose and song loop are coming up. If these minimums are not met
-the correct pattern will not be played next.
+Duration minimum is 3 and maximum is 65.
 
 Keyoff is shown as --- and keyon as +++. There is no function to let the gatemask
 stay in its current value, sorry!
                                         
 3.3 Table data                          
-
+                                        
 In all tables, the left side selects  the command/function, and right side has
 additional parameters for that function. Jump destination 00 will stop execution
 of that table.
@@ -156,12 +155,12 @@ Wavetable left side values:
   E0-FE Slide with speed highbyte 00-1E, right side is speed lowbyte
   FF    Jump, right side is destination, not to be entered directly from
         a command
-                                        
+
 Vibrato continues indefinitely. For a delay before vibrato starts, a delayed
 arpeggio step can be used.
                                         
-When slide reaches target pitch, it jumps to the last arpeggio-step, normal
-or delayed, that was executed before the slide started.
+When slide reaches target pitch, it jumps to the last 'set waveform'-step
+executed before the slide started.
 
 Pulse table left side values:           
 
@@ -178,7 +177,7 @@ Filter table left side values:
 
 When setting filter passband/channels/cutoff, resonance will also be set to
 the left nybble of the left side byte.
-                                        
+
 3.4 Command data                        
                                         
 Commands act both as instruments (when used with a note) and as general pattern
@@ -204,25 +203,23 @@ achieve this by pointing table execution to a FF 00 -step.
 
 3.5 Global settings
                                         
-Accessed from the disk menu, these are the hardrestart sustain/release value
-(default 00) and note init frame waveform (default 08). They are also saved
-with each song.
-                                        
-To get brighter attack to noise, try  init waveform 00 (no testbit). If you
-want one-frame hardrestart like in V2.0, set gatebit in the init waveform, but
-then you must have full sustain (F) in hardrestart SR value or otherwise there
-is usually no sound!
+These are accessed from the disk menu and allow setting the sustain/release
+value used in hardrestart (default 00) as well as the note init frame waveform
+(default 09). They are also saved with each song. To get brighter attack to
+noise waveform, try init frame waveform 01 (no testbit).
 
 3.6 Playback optimizations
+                                        
+New note data is read from the pattern 3 frames before the note starts. On this
+frame slide, vibrato and pulse are all skipped.
 
-Reading pattern data for a new pattern step is split on 2 frames just before
-the new step begins. During this time, pulsetable execution is skipped if the
-channel has a running wavetable program.
+Track data (only if necessary) is read one frame before note start. Pulse will
+be skipped in that case.
 
-Command execution and new note init is performed on the latter of those frames.
-During that, both pulsetable and wavetable execution are skipped.
-
-To minimize the effect of optimizations use as long note durations as possible.
+When executing a command without note, both pulse and wavetable execution are
+skipped for one frame.
+                                        
+To reduce the effect of optimizations, use as long note durations as possible.
 
 
 
@@ -234,16 +231,15 @@ Normal saves the playroutine with the music data, and the calls are usual:
   Start+0 Init, A = subtune             
   Start+3 Play, needs 2 bytes zeropage  
                 (chosen at relocation)  
-                                        
+
 In Gamemusic mode, you also have to choose the startaddress, but the play-
 routine is not saved with the music. This is to save diskspace in a game with
 lots of music modules. See the gamemusic player source code (nt2play.s) and the
 example (example.s) on how to use.
-                                        
+
 To adjust volume of playback, find the instructions ORA #$0F; STA $D418 in the
 player code and change the value of the ORA instruction.
 
-                                        
                                         
 5. Closing words                        
                                         
@@ -253,14 +249,28 @@ practice. Good luck, and have fun!
                                         
                                         
 Version history                         
-                                        
-V2.0  - Original                        
+
+V2.0  - Original
                 
 V2.01 - Gamemusic sound effect routine optimized
       - ins2nt2 updated for different data ordering
       - Current time position in pattern is shown alongside total duration
       - Packed size ("Ps") of pattern is shown in hexadecimal
       - Testing the last edited command also works in tables
+      - ProTracker and DMC note entry modes are switchable
+
+V2.02 - Hardrestart is now 2 frames by default (init waveform has gatebit off)
+      - Zeropage use reduced to 2 bytes
+      - Table editor limits absolute arpeggio notes to valid range
+      
+V2.03 - Hardrestart is 2 frames + 1 silent frame for note init ("hifi" style)
+      - Duration range changed to 3-65
+      - No duration restrictions on transpose & song loop
+      - Playback optimizations changed
+      - Slide goes to the last waveform/arpeggio step when finished, not to
+        a delayed arpeggio step anymore  
+
+he last edited command also works in tables
       - ProTracker and DMC note entry modes are switchable
 
 V2.02 - Hardrestart is now 2 frames by default (init waveform has gatebit off)

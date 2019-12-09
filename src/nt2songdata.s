@@ -24,7 +24,7 @@ N               set 0
                 dc.b >(nt_patterns+N*MAX_PATTLEN)
 N               set N+1
                 repend
-
+              
 nt_wavetbl:     ds.b MAX_TBLLEN+1,0
 nt_pulsespdtbl: ds.b MAX_TBLLEN+1,0
 

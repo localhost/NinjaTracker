@@ -131,11 +131,7 @@ ptsizeloop:     jsr getpattsize
                 ldx #$00
 ptsizefound:    stx lastpatt
 ptsizeloop2:    jsr getpattsize
-                clc
-                adc pattsizelo
-                sta pattsizelo
-                bcc ptsizenotover
-                inc pattsizehi
+                jsr addpattsize
 ptsizenotover:  dex
                 cpx #$ff
                 bne ptsizeloop2
@@ -145,7 +141,7 @@ ptsizenotover:  dex
                 sta lastlegatocmd
 numlegatook:
 
-                lda lastcmd               ;Store length of command tables
+ptsizeok:       lda lastcmd                 ;Store length of command tables
                 sta cmdadsizelo
                 sta cmdsrsizelo
                 sta gamecmdsize
@@ -523,6 +519,13 @@ prtrackfull:    lda (destlo),y
                 bne prtracks
                 jmp savedone
 
+addpattsize:    clc
+                adc pattsizelo
+                sta pattsizelo
+                bcc apsok
+                inc pattsizehi
+apsok:          rts
+
 ;-------------------------------------------------------------------------------
 ; Get size of pattern
 ; X=Pattern number
@@ -594,7 +597,6 @@ vtemp2          = $01
                 rorg vplayer
 
 vinit:          jmp vstoreinit
-
 vplay:          ldx #$00
 vinitsongnum:   lda #$00
                 bmi vfiltpos
@@ -606,11 +608,9 @@ vinitsongnum:   lda #$00
                 adc vinitsongnum+1
                 tay
                 lda vsongtbl,y
-                sta vsongaccess1+1
-                sta vsongaccess2+1
+                sta vtracklo+1
                 lda vsongtbl+1,y
-                sta vsongaccess1+2
-                sta vsongaccess2+2
+                sta vtrackhi+1
                 txa
                 sta vfiltpos+1
                 sta $d417
@@ -623,51 +623,44 @@ vinitloop:      sta vchnpattpos-1,x
                 jsr vinitchn
                 ldx #$0e
 vinitchn:       lda vsongtbl+2,y
-                iny
                 sta vchnsongpos,x
-                lda #$fe
-                sta vchncounter,x
+                iny
+                lda #$ff
+                sta vchnnewnote,x
+                sta vchnduration,x
 vstoreinit:     sta vinitsongnum+1
                 rts
-
-        ;Sequencer transpose & jump
-
-vsongtrans:     sta vchntrans,x
-                inc vchnsongpos,x
-                bne vsongdone
-vsongjump:      iny
-vsongaccess2:   lda vsong,y
-                sta vchnsongpos,x
-                jmp vsongdone
 
           ;Filter execution
 
 vfiltpos:       ldy #$00
                 beq vfiltdone
-vfilttime:      lda #$00
-                bne vfiltmod
-vnewfiltstep:   lda vfilttimetbl-1,y
-                bpl vnewfiltmod
+                lda vfilttimetbl-1,y
+                bpl vfiltmod
                 cmp #$ff
                 bcs vfiltjump
 vsetfilt:       sta $d417
                 and #$70
                 sta vfiltdone+1
 vfiltjump:      lda vfiltspdtbl-1,y
-                bcc vnextfiltpos
-                sta vfiltpos+1
+                bcs vfiltjump2
+vnextfilt:      inc vfiltpos+1
+                bcc vstorecutoff
+vfiltjump2:     sta vfiltpos+1
                 bcs vfiltdone
-vnewfiltmod:    sta vfilttime+1
-vfiltmod:       lda vfiltspdtbl-1,y
-                clc
-vfiltcutoff:    adc #$00
-                dec vfilttime+1
-                bne vstorecutoff
-vnextfiltpos:   inc vfiltpos+1
+vfiltmod:       clc
+                dec vfilttime
+                bmi vnewfiltmod
+                bne vfiltcutoff
+                inc vfiltpos+1
+                bcc vfiltdone
+vnewfiltmod:    sta vfilttime
+vfiltcutoff:    lda #$00
+                adc vfiltspdtbl-1,y
 vstorecutoff:   sta vfiltcutoff+1
                 sta $d416
 vfiltdone:      lda #$00
-vmastervol:     ora #$0f
+                ora #$0f
                 sta $d418
 
         ;Channel execution
@@ -677,63 +670,51 @@ vmastervol:     ora #$0f
                 jsr vchnexec
                 ldx #$0e
 
-        ;Get pattern from sequencer
-
-vchnexec:       ldy vchnsongpos,x
-vsongaccess1:   lda vsong,y
-                bmi vsongtrans
-                beq vsongjump
-
         ;Update duration counter
 
-vsongdone:      inc vchncounter,x
-                bmi vjumptopulse
+vchnexec:       inc vchncounter,x
+                bne vnopattern
 
-        ;Get data from pattern (split on 2 frames)
+        ;Get data from pattern
 
-vneworreload:   tay
+vpattern:       ldy vchnpattnum,x
                 lda vpatttbllo-1,y
                 sta vtemp1
                 lda vpatttblhi-1,y
                 sta vtemp2
                 ldy vchnpattpos,x
-                lda vchncounter,x
-                bne vreload
-
-        ;Pattern frame 1: new note, new instrument, hardrestart
-
-vnewnotes:      lda (vtemp1),y
+                lda (vtemp1),y
                 lsr
                 sta vchnnewnote,x
                 bcc vnonewcmd
 vnewcmd:        iny
-                inc vchnpattpos,x
                 lda (vtemp1),y
                 sta vchncmd,x
                 bcc vrest
 vcheckhr:       bmi vrest
-vhrparam:       lda #$00
-                sta vchnsr,x
                 lda #$fe
                 sta vchngate,x
-vrest:
+                sta $d405,x
+vhrparam:       lda #$00
+                sta $d406,x
+vrest:          iny
+                lda (vtemp1),y
+                cmp #$c0
+                bcc vnonewdur
+                iny
+                sta vchnduration,x
+vnonewdur:      lda (vtemp1),y
+                beq vendpatt
+                tya
+vendpatt:       sta vchnpattpos,x
+                jmp vwaveexec
 
-        ;Execute either wave or pulse, but not both (wave has priority)
-
-vwaveorpulse:   ldy vchnwavepos,x
-                beq vjumptopulse
-                jmp vwavedirect
-vjumptopulse:   jmp vpulseexec
-
-        ;No new instrument
+        ;No new command, or gate control
 
 vnonewcmd:      cmp #FIRSTNOTE/2
                 bcc vgatectrl
                 lda vchncmd,x
                 bcs vcheckhr
-
-        ;Gate control / command only
-
 vgatectrl:      lsr
                 ora #$fe
                 sta vchngate,x
@@ -741,29 +722,55 @@ vgatectrl:      lsr
                 sta vchnnewnote,x
                 bcs vrest
 
-        ;Pattern frame 2: duration, end of pattern, new note init / command exec
+        ;No new pattern data
 
-vnoendpatt:     tya
-                bne vstorepattpos
-vreload:        iny
+vlegatocmd:     tya
+                and #$7f
+                tay
+                bpl vskipadsr
+
+vjumptopulse:   jmp vpulseexec
+vnopattern:     lda vchncounter,x
+                cmp #$02
+                bne vjumptopulse
+
+        ;Reload counter and check for new note / command exec / track access
+
+vreload:        lda vchnduration,x
+                sta vchncounter,x
+                lda vchnnewnote,x
+                bpl vnewnoteinit
+                lda vchnpattpos,x
+                bne vjumptopulse
+                
+         ;Get data from track
+
+vtrack:  
+vtracklo:       lda #$00
+                sta vtemp1
+vtrackhi:       lda #$00
+                sta vtemp2
+                ldy vchnsongpos,x
                 lda (vtemp1),y
-                cmp #$c0
-                bcs vnewdur
-vnonewdur:      lda vchnduration,x
-                bcc vdurdone
-vnewdur:        iny
-                sta vchnduration,x
-vdurdone:       sta vchncounter,x
+                bne vnosongjump
+                iny
                 lda (vtemp1),y
-                bne vnoendpatt
-vendpatt:       inc vchnsongpos,x
-vstorepattpos:  sta vchnpattpos,x
+                tay
+                lda (vtemp1),y
+vnosongjump:    bpl vnosongtrans
+                sta vchntrans,x
+                iny
+                lda (vtemp1),y
+vnosongtrans:   sta vchnpattnum,x
+                iny
+                tya
+                sta vchnsongpos,x
+                bcc vcmdexecuted
+                jmp vwaveexec
 
-        ;Check for new note
+        ;New note init / command exec
 
-vchecknewnote:  lda vchnnewnote,x
-                bmi vwaveorpulse
-                cmp #FIRSTNOTE/2
+vnewnoteinit:   cmp #FIRSTNOTE/2
                 bcc vskipnote
                 adc vchntrans,x
                 asl
@@ -774,13 +781,14 @@ vskipnote:      ldy vchncmd,x
                 lda vcmdad-1,y
                 sta $d405,x
                 lda vcmdsr-1,y
-                sta vchnsr,x
+                sta $d406,x
                 bcc vskipgate
                 lda #$ff
                 sta vchngate,x
-vfirstwave:     lda #$08
+vfirstwave:     lda #$09
                 sta $d404,x
-vskipgate:      lda vcmdwavepos-1,y
+vskipgate:  
+vskipadsr:      lda vcmdwavepos-1,y
                 beq vskipwave
                 sta vchnwavepos,x
                 lda #$00
@@ -794,44 +802,47 @@ vskippulse:     lda vcmdfiltpos-1,y
                 beq vskipfilt
                 sta vfiltpos+1
                 lda #$00
-                sta vfilttime+1
-vskipfilt:      rts
-vlegatocmd:     tya
-                and #$7f
-                tay
-                bpl vskipgate
+                sta vfilttime
+vskipfilt:      clc
+                lda vchnpattpos,x
+                beq vtrack
+vcmdexecuted:  
+vnotrack:       rts
 
         ;Pulse execution
 
-vpulseexec:     ldy vchnpulsepos,x
-                beq vpulsedone
-                lda vchnpulsetime,x
-                bne vpulsemod
-vnewpulse:      lda vpulsetimetbl-1,y
-                bpl vnewpulsemod
-                cmp #$ff
+vnopulsemod:    cmp #$ff
                 lda vpulsespdtbl-1,y
-                bcc vnextpulse
+                bcs vpulsejump
+                inc vchnpulsepos,x
+                bcc vstorepulse
 vpulsejump:     sta vchnpulsepos,x
                 bcs vpulsedone
+vpulseexec:     ldy vchnpulsepos,x
+                beq vpulsedone
+                lda vpulsetimetbl-1,y
+                bmi vnopulsemod
+vpulsemod:      clc
+                dec vchnpulsetime,x
+                bmi vnewpulsemod
+                bne vnonewpulsemod
+                inc vchnpulsepos,x
+                bcc vpulsedone
 vnewpulsemod:   sta vchnpulsetime,x
-vpulsemod:      lda vpulsespdtbl-1,y
-                clc
-                adc vchnpulse,x
+vnonewpulsemod:  
+                lda vchnpulse,x
+                adc vpulsespdtbl-1,y
                 adc #$00
-vpulsenotover:  dec vchnpulsetime,x
-                bne vstorepulse
-vnextpulse:     inc vchnpulsepos,x
 vstorepulse:    sta vchnpulse,x
                 sta $d402,x
                 sta $d403,x
-vpulsedone:
+vpulsedone:  
 
         ;Wavetable execution
 
 vwaveexec:      ldy vchnwavepos,x
                 beq vwavedone
-vwavedirect:    lda vwavetbl-1,y
+                lda vwavetbl-1,y
                 cmp #$c0
                 bcs vslideorvib
                 cmp #$90
@@ -839,19 +850,20 @@ vwavedirect:    lda vwavetbl-1,y
 
         ;Delayed wavetable
 
-vwavedelay:     sbc #$8f
-                inc vchnwavetime,x
-                sbc vchnwavetime,x
-                bne vwavedone
-                sta vchnwavetime,x
+vwavedelay:     beq vnowavechange
+                dec vchnwavetime,x
                 beq vnowavechange
+                bpl vwavedone
+                sbc #$90
+                sta vchnwavetime,x
+                bcs vwavedone
 
         ;Wave change + arpeggio
 
 vwavechange:    sta vchnwave,x
-vnowavechange:  tya
+                tya
                 sta vchnwaveold,x
-                lda vwavetbl,y
+vnowavechange:  lda vwavetbl,y
                 cmp #$ff
                 bcs vwavejump
 vnowavejump:    inc vchnwavepos,x
@@ -864,9 +876,6 @@ vwavejumpdone:  lda vnotetbl-1,y
                 adc vchnnote,x
 vabsfreq:       tay
                 bne vnotenum
-
-        ;Slide finished
-
 vslidedone:     ldy vchnnote,x
                 lda vchnwaveold,x
                 sta vchnwavepos,x
@@ -879,14 +888,14 @@ vstorefreqhi:   sta $d401,x
 vwavedone:      lda vchnwave,x
                 and vchngate,x
                 sta $d404,x
-                lda vchnsr,x
-                sta $d406,x
                 rts
 
         ;Slide or vibrato
 
 vslideorvib:    sbc #$e0
                 sta vtemp1
+                lda vchncounter,x
+                beq vwavedone
                 lda vnotetbl-1,y
                 sta vtemp2
                 bcc vvibrato
@@ -950,12 +959,12 @@ vfreqtbl:       dc.w $022d,$024e,$0271,$0296,$02be,$02e8,$0314,$0343,$0374,$03a9
                 dc.w $8b42,$9389,$9c4f,$a59b,$af74,$b9e2,$c4f0,$d0a6,$dd0e,$ea33,$f820,$ffff
 
 vchnpattpos:    dc.b 0
-vchnsongpos:    dc.b 0
+vchncounter:    dc.b 0
+vchnnewnote:    dc.b 0
 vchnwavepos:    dc.b 0
-vchnwavetime:   dc.b 0
-vchnwave:       dc.b 0
 vchnpulsepos:   dc.b 0
-vchnpulsetime:  dc.b 0
+vchnwave:       dc.b 0
+vchnwaveold:    dc.b 0
 
                 dc.b 0,0,0,0,0,0,0
                 dc.b 0,0,0,0,0,0,0
@@ -963,10 +972,11 @@ vchnpulsetime:  dc.b 0
 vchngate:       dc.b $fe
 vchntrans:      dc.b $ff
 vchncmd:        dc.b $01
-vchncounter:    dc.b 0
+vchnsongpos:    dc.b 0
+vchnpattnum:    dc.b 0
 vchnduration:   dc.b 0
 vchnnote:       dc.b 0
-vchnnewnote:    dc.b 0
+
 
                 dc.b $fe,$ff,$01,0,0,0,0
                 dc.b $fe,$ff,$01,0,0,0,0
@@ -974,9 +984,9 @@ vchnnewnote:    dc.b 0
 vchnfreqlo:     dc.b 0
 vchnfreqhi:     dc.b 0
 vchnpulse:      dc.b 0
-vchnwaveold:    dc.b 0
-vchnsr:         dc.b 0
-                dc.b 0
+vchnwavetime:   dc.b 0
+vchnpulsetime:  dc.b 0
+vfilttime:      dc.b 0
                 dc.b 0
 
                 dc.b 0,0,0,0,0,0,0

@@ -359,7 +359,7 @@ emptycmdname:   ds.b MAX_CMDNAMELEN," "
 
 emptyrowtext:   dc.b "                                        ",0
 
-titletext:      dc.b "NinjaTrackerV2.02",0
+titletext:      dc.b "NinjaTrackerV2.03",0
 statustext:     dc.b "Sng  Oct        Ras / ",0
 
 tracktext:      dc.b "Trk 1 Trk 2 Trk 3",0
@@ -393,7 +393,7 @@ packertext:     dc.b "Output To File:",0
 
 confirmtext:    dc.b "Confirm (Y/N)?",0
 
-hexcodes:       dc.b "0123456789ABCDEF",0
+hexcodes:       dc.b "0123456789ABCDEFGHIJKLMN",0
 
 packtext1:      dc.b "Pack & Relocate",0
 packtext2:      dc.b "Normal/Gmusic:",0

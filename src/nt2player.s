@@ -16,11 +16,9 @@ nt_initsongnum: lda #$00
                 adc nt_initsongnum+1
                 tay
                 lda nt_songtbl,y
-                sta nt_songaccess1+1
-                sta nt_songaccess2+1
+                sta nt_tracklo+1
                 lda nt_songtbl+1,y
-                sta nt_songaccess1+2
-                sta nt_songaccess2+2
+                sta nt_trackhi+1
                 txa
                 sta nt_filtpos+1
                 sta $d417
@@ -33,51 +31,44 @@ nt_initloop:    sta nt_chnpattpos-1,x
                 jsr nt_initchn
                 ldx #$0e
 nt_initchn:     lda nt_songtbl+2,y
-                iny
                 sta nt_chnsongpos,x
-                lda #$fe
-                sta nt_chncounter,x
+                iny
+                lda #$ff
+                sta nt_chnnewnote,x
+                sta nt_chnduration,x
                 sta nt_initsongnum+1
                 rts
-
-        ;Sequencer transpose & jump
-
-nt_songtrans:   sta nt_chntrans,x
-                inc nt_chnsongpos,x
-                bne nt_songdone
-nt_songjump:    iny
-nt_songaccess2: lda nt_song,y
-                sta nt_chnsongpos,x
-                jmp nt_songdone
 
           ;Filter execution
 
 nt_filtpos:     ldy #$00
                 beq nt_filtdone
-nt_filttime:    lda #$00
-                bne nt_filtmod
-nt_newfiltstep: lda nt_filttimetbl-1,y
-                bpl nt_newfiltmod
+                lda nt_filttimetbl-1,y
+                bpl nt_filtmod
                 cmp #$ff
                 bcs nt_filtjump
 nt_setfilt:     sta $d417
                 and #$70
                 sta nt_filtdone+1
 nt_filtjump:    lda nt_filtspdtbl-1,y
-                bcc nt_nextfiltpos
-                sta nt_filtpos+1
+                bcs nt_filtjump2
+nt_nextfilt:    inc nt_filtpos+1
+                bcc nt_storecutoff
+nt_filtjump2:   sta nt_filtpos+1
                 bcs nt_filtdone
-nt_newfiltmod:  sta nt_filttime+1
-nt_filtmod:     lda nt_filtspdtbl-1,y
-                clc
-nt_filtcutoff:  adc #$00
-                dec nt_filttime+1
-                bne nt_storecutoff
-nt_nextfiltpos: inc nt_filtpos+1
+nt_filtmod:     clc
+                dec nt_filttime
+                bmi nt_newfiltmod
+                bne nt_filtcutoff
+                inc nt_filtpos+1
+                bcc nt_filtdone
+nt_newfiltmod:  sta nt_filttime
+nt_filtcutoff:  lda #$00
+                adc nt_filtspdtbl-1,y
 nt_storecutoff: sta nt_filtcutoff+1
                 sta $d416
 nt_filtdone:    lda #$00
-nt_mastervol:   ora #$0f
+                ora #$0f
                 sta $d418
 
         ;Channel execution
@@ -87,63 +78,51 @@ nt_mastervol:   ora #$0f
                 jsr nt_chnexec
                 ldx #$0e
 
-        ;Get pattern from sequencer
-
-nt_chnexec:     ldy nt_chnsongpos,x
-nt_songaccess1: lda nt_song,y
-                bmi nt_songtrans
-                beq nt_songjump
-
         ;Update duration counter
 
-nt_songdone:    inc nt_chncounter,x
-                bmi nt_jumptopulse
+nt_chnexec:     inc nt_chncounter,x
+                bne nt_nopattern
 
-        ;Get data from pattern (split on 2 frames)
+        ;Get data from pattern
 
-nt_neworreload: tay
+nt_pattern:     ldy nt_chnpattnum,x
                 lda nt_patttbllo-1,y
                 sta nt_temp1
                 lda nt_patttblhi-1,y
                 sta nt_temp2
                 ldy nt_chnpattpos,x
-                lda nt_chncounter,x
-                bne nt_reload
-
-        ;Pattern frame 1: new note, new instrument, hardrestart
-
-nt_newnotes:    lda (nt_temp1),y
+                lda (nt_temp1),y
                 lsr
                 sta nt_chnnewnote,x
                 bcc nt_nonewcmd
 nt_newcmd:      iny
-                inc nt_chnpattpos,x
                 lda (nt_temp1),y
                 sta nt_chncmd,x
                 bcc nt_rest
 nt_checkhr:     bmi nt_rest
-nt_hrparam:     lda #$00
-                sta nt_chnsr,x
                 lda #$fe
                 sta nt_chngate,x
-nt_rest:
+                sta $d405,x
+nt_hrparam:     lda #$00
+                sta $d406,x
+nt_rest:        iny
+                lda (nt_temp1),y
+                cmp #$c0
+                bcc nt_nonewdur
+                iny
+                sta nt_chnduration,x
+nt_nonewdur:    lda (nt_temp1),y
+                beq nt_endpatt
+                tya
+nt_endpatt:     sta nt_chnpattpos,x
+                jmp nt_waveexec
 
-        ;Execute either wave or pulse, but not both (wave has priority)
-
-nt_waveorpulse: ldy nt_chnwavepos,x
-                beq nt_jumptopulse
-                jmp nt_wavedirect
-nt_jumptopulse: jmp nt_pulseexec
-
-        ;No new instrument
+        ;No new command, or gate control
 
 nt_nonewcmd:    cmp #FIRSTNOTE/2
                 bcc nt_gatectrl
                 lda nt_chncmd,x
                 bcs nt_checkhr
-
-        ;Gate control / command only
-
 nt_gatectrl:    lsr
                 ora #$fe
                 sta nt_chngate,x
@@ -151,29 +130,55 @@ nt_gatectrl:    lsr
                 sta nt_chnnewnote,x
                 bcs nt_rest
 
-        ;Pattern frame 2: duration, end of pattern, new note init / command exec
+        ;No new pattern data
 
-nt_noendpatt:   tya
-                bne nt_storepattpos
-nt_reload:      iny
+nt_legatocmd:   tya
+                and #$7f
+                tay
+                bpl nt_skipadsr
+
+nt_jumptopulse: jmp nt_pulseexec
+nt_nopattern:   lda nt_chncounter,x
+                cmp #$02
+                bne nt_jumptopulse
+
+        ;Reload counter and check for new note / command exec / track access
+
+nt_reload:      lda nt_chnduration,x
+                sta nt_chncounter,x
+                lda nt_chnnewnote,x
+                bpl nt_newnoteinit
+                lda nt_chnpattpos,x
+                bne nt_jumptopulse
+
+         ;Get data from track
+
+nt_track:
+nt_tracklo:     lda #$00
+                sta nt_temp1
+nt_trackhi:     lda #$00
+                sta nt_temp2
+                ldy nt_chnsongpos,x
                 lda (nt_temp1),y
-                cmp #$c0
-                bcs nt_newdur
-nt_nonewdur:    lda nt_chnduration,x
-                bcc nt_durdone
-nt_newdur:      iny
-                sta nt_chnduration,x
-nt_durdone:     sta nt_chncounter,x
+                bne nt_nosongjump
+                iny
                 lda (nt_temp1),y
-                bne nt_noendpatt
-nt_endpatt:     inc nt_chnsongpos,x
-nt_storepattpos:sta nt_chnpattpos,x
+                tay
+                lda (nt_temp1),y
+nt_nosongjump:  bpl nt_nosongtrans
+                sta nt_chntrans,x
+                iny
+                lda (nt_temp1),y
+nt_nosongtrans: sta nt_chnpattnum,x
+                iny
+                tya
+                sta nt_chnsongpos,x
+                bcc nt_cmdexecuted
+                jmp nt_waveexec
 
-        ;Check for new note
+        ;New note init / command exec
 
-nt_checknewnote:lda nt_chnnewnote,x
-                bmi nt_waveorpulse
-                cmp #FIRSTNOTE/2
+nt_newnoteinit: cmp #FIRSTNOTE/2
                 bcc nt_skipnote
                 adc nt_chntrans,x
                 asl
@@ -184,13 +189,14 @@ nt_skipnote:    ldy nt_chncmd,x
                 lda nt_cmdad-1,y
                 sta $d405,x
                 lda nt_cmdsr-1,y
-                sta nt_chnsr,x
+                sta $d406,x
                 bcc nt_skipgate
                 lda #$ff
                 sta nt_chngate,x
-nt_firstwave:   lda #$08
+nt_firstwave:   lda #$09
                 sta $d404,x
-nt_skipgate:    lda nt_cmdwavepos-1,y
+nt_skipgate:
+nt_skipadsr:    lda nt_cmdwavepos-1,y
                 beq nt_skipwave
                 sta nt_chnwavepos,x
                 lda #$00
@@ -204,34 +210,37 @@ nt_skippulse:   lda nt_cmdfiltpos-1,y
                 beq nt_skipfilt
                 sta nt_filtpos+1
                 lda #$00
-                sta nt_filttime+1
-nt_skipfilt:    rts
-nt_legatocmd:   tya
-                and #$7f
-                tay
-                bpl nt_skipgate
+                sta nt_filttime
+nt_skipfilt:    clc
+                lda nt_chnpattpos,x
+                beq nt_track
+nt_cmdexecuted:
+nt_notrack:     rts
 
         ;Pulse execution
 
-nt_pulseexec:   ldy nt_chnpulsepos,x
-                beq nt_pulsedone
-                lda nt_chnpulsetime,x
-                bne nt_pulsemod
-nt_newpulse:    lda nt_pulsetimetbl-1,y
-                bpl nt_newpulsemod
-                cmp #$ff
+nt_nopulsemod:  cmp #$ff
                 lda nt_pulsespdtbl-1,y
-                bcc nt_nextpulse
+                bcs nt_pulsejump
+                inc nt_chnpulsepos,x
+                bcc nt_storepulse
 nt_pulsejump:   sta nt_chnpulsepos,x
                 bcs nt_pulsedone
+nt_pulseexec:   ldy nt_chnpulsepos,x
+                beq nt_pulsedone
+                lda nt_pulsetimetbl-1,y
+                bmi nt_nopulsemod
+nt_pulsemod:    clc
+                dec nt_chnpulsetime,x
+                bmi nt_newpulsemod
+                bne nt_nonewpulsemod
+                inc nt_chnpulsepos,x
+                bcc nt_pulsedone
 nt_newpulsemod: sta nt_chnpulsetime,x
-nt_pulsemod:    lda nt_pulsespdtbl-1,y
-                clc
-                adc nt_chnpulse,x
+nt_nonewpulsemod:
+                lda nt_chnpulse,x
+                adc nt_pulsespdtbl-1,y
                 adc #$00
-nt_pulsenotover:dec nt_chnpulsetime,x
-                bne nt_storepulse
-nt_nextpulse:   inc nt_chnpulsepos,x
 nt_storepulse:  sta nt_chnpulse,x
                 sta $d402,x
                 sta $d403,x
@@ -241,7 +250,7 @@ nt_pulsedone:
 
 nt_waveexec:    ldy nt_chnwavepos,x
                 beq nt_wavedone
-nt_wavedirect:  lda nt_wavetbl-1,y
+                lda nt_wavetbl-1,y
                 cmp #$c0
                 bcs nt_slideorvib
                 cmp #$90
@@ -249,19 +258,20 @@ nt_wavedirect:  lda nt_wavetbl-1,y
 
         ;Delayed wavetable
 
-nt_wavedelay:   sbc #$8f
-                inc nt_chnwavetime,x
-                sbc nt_chnwavetime,x
-                bne nt_wavedone
-                sta nt_chnwavetime,x
+nt_wavedelay:   beq nt_nowavechange
+                dec nt_chnwavetime,x
                 beq nt_nowavechange
+                bpl nt_wavedone
+                sbc #$90
+                sta nt_chnwavetime,x
+                bcs nt_wavedone
 
         ;Wave change + arpeggio
 
 nt_wavechange:  sta nt_chnwave,x
-nt_nowavechange:tya
+                tya
                 sta nt_chnwaveold,x
-                lda nt_wavetbl,y
+nt_nowavechange:lda nt_wavetbl,y
                 cmp #$ff
                 bcs nt_wavejump
 nt_nowavejump:  inc nt_chnwavepos,x
@@ -273,10 +283,7 @@ nt_wavejumpdone:lda nt_notetbl-1,y
                 bcs nt_absfreq
                 adc nt_chnnote,x
 nt_absfreq:     tay
-                jmp nt_notenum
-
-        ;Slide finished
-
+                bne nt_notenum
 nt_slidedone:   ldy nt_chnnote,x
                 lda nt_chnwaveold,x
                 sta nt_chnwavepos,x
@@ -289,14 +296,14 @@ nt_storefreqhi: sta $d401,x
 nt_wavedone:    lda nt_chnwave,x
                 and nt_chngate,x
                 sta $d404,x
-                lda nt_chnsr,x
-                sta $d406,x
                 rts
 
         ;Slide or vibrato
 
 nt_slideorvib:  sbc #$e0
                 sta nt_temp1
+                lda nt_chncounter,x
+                beq nt_wavedone
                 lda nt_notetbl-1,y
                 sta nt_temp2
                 bcc nt_vibrato
@@ -360,12 +367,12 @@ nt_freqtbl:     dc.w $022d,$024e,$0271,$0296,$02be,$02e8,$0314,$0343,$0374,$03a9
                 dc.w $8b42,$9389,$9c4f,$a59b,$af74,$b9e2,$c4f0,$d0a6,$dd0e,$ea33,$f820,$ffff
 
 nt_chnpattpos:  dc.b 0
-nt_chnsongpos:  dc.b 0
+nt_chncounter:  dc.b 0
+nt_chnnewnote:  dc.b 0
 nt_chnwavepos:  dc.b 0
-nt_chnwavetime: dc.b 0
-nt_chnwave:     dc.b 0
 nt_chnpulsepos: dc.b 0
-nt_chnpulsetime:dc.b 0
+nt_chnwave:     dc.b 0
+nt_chnwaveold:  dc.b 0
 
                 dc.b 0,0,0,0,0,0,0
                 dc.b 0,0,0,0,0,0,0
@@ -373,10 +380,10 @@ nt_chnpulsetime:dc.b 0
 nt_chngate:     dc.b $fe
 nt_chntrans:    dc.b $ff
 nt_chncmd:      dc.b $01
-nt_chncounter:  dc.b 0
+nt_chnsongpos:  dc.b 0
+nt_chnpattnum:  dc.b 0
 nt_chnduration: dc.b 0
 nt_chnnote:     dc.b 0
-nt_chnnewnote:  dc.b 0
 
                 dc.b $fe,$ff,$01,0,0,0,0
                 dc.b $fe,$ff,$01,0,0,0,0
@@ -384,9 +391,9 @@ nt_chnnewnote:  dc.b 0
 nt_chnfreqlo:   dc.b 0
 nt_chnfreqhi:   dc.b 0
 nt_chnpulse:    dc.b 0
-nt_chnwaveold:  dc.b 0
-nt_chnsr:       dc.b 0
-                dc.b 0
+nt_chnwavetime: dc.b 0
+nt_chnpulsetime:dc.b 0
+nt_filttime:    dc.b 0
                 dc.b 0
 
                 dc.b 0,0,0,0,0,0,0

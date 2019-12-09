@@ -34,6 +34,10 @@ ras_nomusic:    sta curraster
                 sta nt_chncounter
                 sta nt_chncounter+7
                 sta nt_chncounter+14
+                lda #$01
+                sta nt_chnpattpos
+                sta nt_chnpattpos+7
+                sta nt_chnpattpos+14
                 jmp ras_nosec
 
 raster:         cld
@@ -53,7 +57,7 @@ raster:         cld
                 bcc ras_notmax
                 sta maxraster
 ras_notmax:     lda maxraster                   ;Raster-meter bugs sometimes..
-                cmp #$10                        ;(loading/saving etc.)
+                cmp #$18                        ;(loading/saving etc.)
                 bcc ras_meterok
                 lda #$00
                 sta curraster

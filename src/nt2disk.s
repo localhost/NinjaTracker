@@ -59,10 +59,19 @@ dm_nodrivechg2: cmp #"N"
                 cmp #"L"
                 bne dm_noload
                 jsr loadsong
-                jmp dm_wait
+                lda desthi
+                cmp #>savesongend
+                bcc dm_noloadend
+                lda #$01
+                jsr convertdurations
+dm_noloadend:   jmp dm_wait
 dm_noload:      cmp #"S"
                 bne dm_nosave
+                lda #$ff
+                jsr convertdurations
                 jsr savesong
+                lda #$01
+                jsr convertdurations
                 jmp dm_wait
 dm_nosave:      cmp #"E"
                 bne dm_noerase
@@ -132,7 +141,11 @@ printsterror:   ldx #0
 ; Load song data
 ;-------------------------------------------------------------------------------
 
-loadsong:       lda #MSG_LOAD
+loadsong:       lda #<savesongstart
+                sta destlo
+                lda #>savesongstart
+                sta desthi
+                lda #MSG_LOAD
                 jsr askname
                 lda namelength
                 bne loadok
@@ -156,10 +169,6 @@ loadok:         lda #$02
                 jsr chrin
                 cmp #"2"
                 bne loaderror
-                lda #<savesongstart
-                sta destlo
-                lda #>savesongstart
-                sta desthi
 loadloop:       jsr loadbyte
                 cmp #ESCBYTE
                 beq loadblock
@@ -685,7 +694,7 @@ clrd_patterns2: sta (destlo),y
                 bne clrd_patterns
                 lda #KEYOFF+$02
                 sta nt_patterns
-                lda #$101-$40
+                lda #$c2
                 sta nt_patterns+1
                 ldx #$00
 clrd_songs:     txa
@@ -922,6 +931,4 @@ detectdevice:   lda fa                      ;Find out drive number
                 bcs driveok
                 lda #$08
 driveok:        sta drivenumber
-                rts
-ok:        sta drivenumber
                 rts

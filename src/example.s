@@ -100,6 +100,7 @@ raster:         dec $d019
                 jsr nt_music                ;how long it took to execute
                 lda $d012
                 dec $d020
+                sec
                 sbc #RASTERPOS
                 sta curraster
                 cmp maxraster               ;New rastertime record?

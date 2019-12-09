@@ -93,7 +93,7 @@ N               set 0
                 sta $0800+N*3
 N               set N+1
                 repend
-                sta $d01b
+                sta $d01b                
                 lda #$00
                 sta $d01c
                 sta $d017
@@ -294,6 +294,4 @@ pc_nolowercase: sta (scrlo),y
                 sta (colorlo),y
                 lda #$01
                 jmp skipchars
-
-mp skipchars
 

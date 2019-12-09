@@ -456,6 +456,14 @@ opjoin:         stx var5
                 sta var6                    ;optimal result
                 cmp #3
                 bcc opjoinok
+                txa
+                beq opjoinnoprevious
+                lda workpattdur,x           ;If join results in same
+                clc                         ;duration as previous,
+                adc workpattdur+1,x         ;definitely go ahead
+                cmp workpattdur-1,x
+                beq opjoinok
+opjoinnoprevious:
                 lda workpattnote,x          ;If notes are same,
                 cmp workpattnote+1,x        ;go ahead with the join
                 beq opjoinok
@@ -560,7 +568,6 @@ ocjnext:        clc
                 rts
 ocjok:          sec
                 rts
-
 
 clearworkpattrow:
                 lda #KEYOFF
@@ -731,7 +738,7 @@ wtop_nocmd:     lda workpattdur,x
                 beq wtop_nodur
                 sta var1
                 sec
-                sbc #$02
+                sbc #$03
                 eor #$ff
                 sta (destlo),y
                 iny
@@ -800,7 +807,7 @@ ptow_nocmd:     lda (srclo),y
                 bcc ptow_nodur
                 iny
                 eor #$ff
-                adc #$01 ;C=1 -> add one more
+                adc #$02 ;C=1 -> add one more
                 sta workpattdur,x
                 sta var1
 ptow_nodur:     inx
@@ -845,5 +852,46 @@ gpdpdone:       lda alo
                 lda ahi
                 sta durposhi
                 rts
-                                
+
+convertdurations:
+                sta var1
+                ldx #$00
+cdloop1:        lda nt_patttbllo,x
+                sta destlo
+                lda nt_patttblhi,x
+                sta desthi
+                ldy #$00
+cdloop2:        lda (destlo),y
+                beq cdnextpatt
+                cmp #$c0
+                bcc cdnodur 
+                clc
+                adc var1
+                bne cddurnothigh
+                lda #$ff
+cddurnothigh:   cmp #$bf
+                bne cddurok
+                lda #$c0
+cddurok:        sta (destlo),y
+                iny
+                bne cdloop2
+cdnodur:        iny
+                cmp #FIRSTNOTE
+                bcc cdgatectrl
+                lsr
+                bcc cdloop2
+cdcmd:          iny
+                bne cdloop2
+cdgatectrl:     and #$02
+                beq cdcmd
+                bne cdloop2
+cdnextpatt:     inx
+                cpx #MAX_PATT
+                bcc cdloop1
+                rts
+
+
+
+
+
 

@@ -1,5 +1,5 @@
 ;-------------------------------------------------------------------------------
-; NinjaTracker V2.02
+; NinjaTracker V2.03
 ;
 ; Cadaver 9/2006
 ;-------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ KEY_SHIFTRETURN = $8d
         ;Default hardrestart parameters
 
 DEFAULT_HRPARAM = $00
-DEFAULT_FIRSTWAVE = $08
+DEFAULT_FIRSTWAVE = $09
 
         ;Orderlist commands
 
@@ -98,7 +98,7 @@ FIRSTNOTE       = $0c*2
 LASTNOTE        = $5f*2
 DUR             = $c0
 MAXDUR          = 65
-MINDUR          = 2
+MINDUR          = 3
 
         ;Zeropage
 
@@ -135,7 +135,6 @@ timeframehalf   = $1c
 
 nt_temp1        = $fc
 nt_temp2        = $fd
-nt_temp3        = $fe
 
 status          = $90
 fa              = $ba
@@ -292,5 +291,8 @@ editcmd:        lda #EM_CMD
                 include nt2songdata.s
                 include nt2var.s
                 include nt2helptext.s
+
+
+ude nt2helptext.s
 
 
