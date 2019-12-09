@@ -82,7 +82,22 @@ tbednotright:   jsr hexedit
                 cmp tbllen,x
                 bne tbednotlast
                 inc tbllen,x
-tbednotlast:    jmp tblrightedit
+tbednotlast:    tay
+                txa
+                bne tbednoabsarp
+                lda nt_waveedittbl,y
+                cmp #$c0
+                bcs tbednoabsarp
+                lda nt_notetbl,y
+                bpl tbednoabsarp
+                cmp #$df+1                    ;Keep absolute notes within range
+                bcc tbednothigh
+                lda #$df
+tbednothigh:    cmp #$8c
+                bcs tbednotlow
+                lda #$8c
+tbednotlow:     sta nt_notetbl,y
+tbednoabsarp:   jmp tblrightedit
 tbinsdone:
 tbdeldone:
 tbeddone:       rts

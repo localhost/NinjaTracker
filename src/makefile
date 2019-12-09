@@ -4,7 +4,7 @@ ninjatr2.prg: ninjatr2.s ninjatr2.s nt2command.s nt2data.s nt2disk.s nt2display.
 nt2packer.s nt2pattern.s nt2playback.s nt2player.s nt2raster.s nt2screen.s nt2songdata.s nt2table.s nt2track.s nt2var.s
 	dasm ninjatr2.s -oninjatr2.prg -v3 -p3
 	pucrunch ninjatr2.prg ninjatr2.prg -x2112
-	prg2d64 ../ninjatr2.d64 NINJATRK_V2.01 ninjatr2.prg
+	prg2d64 ../ninjatr2.d64 NINJATRK_V2.02 ninjatr2.prg
 
 ../example.prg: example.s ../nt2play.s gamemusic.bin
 	dasm example.s -o../example.prg -v3 -p3

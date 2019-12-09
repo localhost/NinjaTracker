@@ -1,5 +1,5 @@
 ;-------------------------------------------------------------------------------
-; NinjaTracker V2.01
+; NinjaTracker V2.02
 ;
 ; Cadaver 9/2006
 ;-------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ KEY_SHIFTRETURN = $8d
         ;Default hardrestart parameters
 
 DEFAULT_HRPARAM = $00
-DEFAULT_FIRSTWAVE = $09
+DEFAULT_FIRSTWAVE = $08
 
         ;Orderlist commands
 

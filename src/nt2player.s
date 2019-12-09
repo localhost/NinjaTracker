@@ -123,7 +123,7 @@ nt_newcmd:      iny
                 bcc nt_rest
 nt_checkhr:     bmi nt_rest
 nt_hrparam:     lda #$00
-                sta $d406,x
+                sta nt_chnsr,x
                 lda #$fe
                 sta nt_chngate,x
 nt_rest:
@@ -183,14 +183,14 @@ nt_skipnote:    ldy nt_chncmd,x
                 bmi nt_legatocmd
                 lda nt_cmdad-1,y
                 sta $d405,x
+                lda nt_cmdsr-1,y
+                sta nt_chnsr,x
                 bcc nt_skipgate
                 lda #$ff
                 sta nt_chngate,x
-nt_firstwave:   lda #$09
+nt_firstwave:   lda #$08
                 sta $d404,x
-nt_skipgate:    lda nt_cmdsr-1,y
-                sta $d406,x
-nt_skipadsr:    lda nt_cmdwavepos-1,y
+nt_skipgate:    lda nt_cmdwavepos-1,y
                 beq nt_skipwave
                 sta nt_chnwavepos,x
                 lda #$00
@@ -209,7 +209,7 @@ nt_skipfilt:    rts
 nt_legatocmd:   tya
                 and #$7f
                 tay
-                bpl nt_skipadsr
+                bpl nt_skipgate
 
         ;Pulse execution
 
@@ -277,7 +277,8 @@ nt_absfreq:     tay
 
         ;Slide finished
 
-nt_slidedone:   lda nt_chnwaveold,x
+nt_slidedone:   ldy nt_chnnote,x
+                lda nt_chnwaveold,x
                 sta nt_chnwavepos,x
 nt_notenum:     lda nt_freqtbl-24,y
                 sta nt_chnfreqlo,x
@@ -288,6 +289,8 @@ nt_storefreqhi: sta $d401,x
 nt_wavedone:    lda nt_chnwave,x
                 and nt_chngate,x
                 sta $d404,x
+                lda nt_chnsr,x
+                sta $d406,x
                 rts
 
         ;Slide or vibrato
@@ -306,11 +309,11 @@ nt_slide:       ldy nt_chnnote,x
                 pha
                 lda nt_chnfreqhi,x
                 sbc nt_freqtbl-23,y
-                sta nt_temp3
+                tay
                 pla
                 bcs nt_slidedown
 nt_slideup:     adc nt_temp2
-                lda nt_temp3
+                tya
                 adc nt_temp1
                 bcs nt_slidedone
 nt_freqadd:     lda nt_chnfreqlo,x
@@ -321,7 +324,7 @@ nt_freqadd:     lda nt_chnfreqlo,x
                 adc nt_temp1
                 jmp nt_storefreqhi
 nt_slidedown:   sbc nt_temp2
-                lda nt_temp3
+                tya
                 sbc nt_temp1
                 bcc nt_slidedone
 nt_freqsub:     lda nt_chnfreqlo,x
@@ -382,11 +385,11 @@ nt_chnfreqlo:   dc.b 0
 nt_chnfreqhi:   dc.b 0
 nt_chnpulse:    dc.b 0
 nt_chnwaveold:  dc.b 0
-                dc.b 0
+nt_chnsr:       dc.b 0
                 dc.b 0
                 dc.b 0
 
                 dc.b 0,0,0,0,0,0,0
-                dc.b 0,0,0,0
+                dc.b 0,0,0,0,0
 
 

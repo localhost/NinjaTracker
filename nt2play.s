@@ -1,5 +1,5 @@
 ;-------------------------------------------------------------------------------
-; NinjaTracker V2.01 gamemusic playroutine
+; NinjaTracker V2.02 gamemusic playroutine
 ;
 ; Cadaver 9/2006
 ;-------------------------------------------------------------------------------
@@ -22,9 +22,9 @@ NT_ADDLEGATOCMD    = $10
 NT_ADDPATT         = $14
 
 NT_HRPARAM         = $00
-NT_FIRSTWAVE       = $09
+NT_FIRSTWAVE       = $08
 NT_SFXHRPARAM      = $00
-NT_SFXFIRSTWAVE    = $09
+NT_SFXFIRSTWAVE    = $08
 
 ;-------------------------------------------------------------------------------
 ; Zeropage work area. 3 consecutive addresses are needed.
@@ -33,7 +33,6 @@ NT_SFXFIRSTWAVE    = $09
 nt_zpbase       = $fc
 nt_temp1        = nt_zpbase+0
 nt_temp2        = nt_zpbase+1
-nt_temp3        = nt_zpbase+2
 
 ;-------------------------------------------------------------------------------
 ; NT_NEWMUSIC
@@ -184,7 +183,7 @@ nt_songp0a:     lda $1000,y
 ;
 ; Parameters: -
 ; Returns: -
-; Modifies: A,X,Y,nt_temp1-nt_temp3
+; Modifies: A,X,Y,nt_temp1-nt_temp2
 ;-------------------------------------------------------------------------------
 
 nt_music:       ldx #$00
@@ -248,10 +247,8 @@ nt_newcmd:      iny
                 sta nt_chncmd,x
                 bcc nt_rest
 nt_checkhr:     bmi nt_rest
-                ldy nt_chnsfx,x
-                bne nt_jumptosfx
                 lda #NT_HRPARAM
-                sta $d406,x
+                sta nt_chnsr,x
 nt_skipsr:      lda #$fe
                 sta nt_chngate,x
 nt_rest:
@@ -301,15 +298,14 @@ nt_skipnote:    ldy nt_chncmd,x
                 bmi nt_legatocmd
 nt_cmdadm1:     lda $1000,y
                 sta $d405,x
+nt_cmdsrm1:     lda $1000,y
+                sta nt_chnsr,x
                 bcc nt_skipgate
                 lda #$ff
                 sta nt_chngate,x
                 lda #NT_FIRSTWAVE
                 sta $d404,x
 nt_skipgate:
-nt_cmdsrm1:     lda $1000,y
-                sta $d406,x
-nt_skipadsr:
 nt_cmdwavem1:   lda $1000,y
                 beq nt_skipwave
                 sta nt_chnwavepos,x
@@ -331,7 +327,7 @@ nt_skipfilt:    rts
 nt_legatocmd:   tya
                 and #$7f
                 tay
-                bpl nt_skipadsr
+                bpl nt_skipgate
 nt_pulseexec:   ldy nt_chnpulsepos,x
                 beq nt_pulsedone
                 lda nt_chnpulsetime,x
@@ -388,8 +384,9 @@ nt_notem1a:     lda $1000,y
                 bcs nt_absfreq
                 adc nt_chnnote,x
 nt_absfreq:     tay
-                jmp nt_notenum
-nt_slidedone:   lda nt_chnwaveold,x
+                bne nt_notenum
+nt_slidedone:   ldy nt_chnnote,x
+                lda nt_chnwaveold,x
                 sta nt_chnwavepos,x
 nt_notenum:     lda nt_freqtbl-24,y
                 sta nt_chnfreqlo,x
@@ -400,6 +397,8 @@ nt_storefreqhi: sta $d401,x
 nt_wavedone:    lda nt_chnwave,x
                 and nt_chngate,x
                 sta $d404,x
+                lda nt_chnsr,x
+                sta $d406,x
                 rts
 nt_slideorvib:  sbc #$e0
                 sta nt_temp1
@@ -412,11 +411,11 @@ nt_slide:       ldy nt_chnnote,x
                 pha
                 lda nt_chnfreqhi,x
                 sbc nt_freqtbl-23,y
-                sta nt_temp3
+                tay
                 pla
                 bcs nt_slidedown
 nt_slideup:     adc nt_temp2
-                lda nt_temp3
+                tya
                 adc nt_temp1
                 bcs nt_slidedone
 nt_freqadd:     lda nt_chnfreqlo,x
@@ -427,10 +426,10 @@ nt_freqadd:     lda nt_chnfreqlo,x
                 adc nt_temp1
                 jmp nt_storefreqhi
 nt_sfxhr:       lda #NT_SFXHRPARAM
-                sta $d406,x
+                sta nt_chnsr,x
                 bcc nt_wavedone
 nt_slidedown:   sbc nt_temp2
-                lda nt_temp3
+                tya
                 sbc nt_temp1
                 bcc nt_slidedone
 nt_freqsub:     lda nt_chnfreqlo,x
@@ -480,12 +479,14 @@ nt_sfxnoend:    asl
                 inc nt_chnsfx,x
 nt_sfxwavechg:  sta $d404,x
                 sta nt_chnwave,x
-                bcc nt_sfxdone
+                bcs nt_sfxdone
+                ldy #$00
                 lda (nt_temp1),y
                 sta $d406,x
 nt_sfxdone:     rts
 nt_sfxend:      sta nt_chnsfx,x
                 sta nt_chnwavepos,x
+                sta nt_chnwaveold,x
                 beq nt_sfxwavechg
 nt_sfxinit:     lda (nt_temp1),y
                 sta $d402,x
@@ -493,7 +494,6 @@ nt_sfxinit:     lda (nt_temp1),y
                 dey
                 lda (nt_temp1),y
                 sta $d405,x
-                dey
                 lda #NT_SFXFIRSTWAVE
                 bcs nt_sfxwavechg
 
@@ -615,12 +615,13 @@ nt_chnnewnote:  dc.b 0
 nt_chnfreqlo:   dc.b 0
 nt_chnfreqhi:   dc.b 0
 nt_chnpulse:    dc.b 0
-nt_chnwaveold:  dc.b 0
+nt_chnsr:       dc.b 0
 nt_chnsfx:      dc.b 0
 nt_chnsfxlo:    dc.b 0
-nt_chnsfxhi:    dc.b 0
+nt_chnsfxhi:
+nt_chnwaveold:  dc.b 0
 
                 dc.b 0,0,0,0,0,0,0
                 dc.b 0,0,0,0,0,0,0
-                
+
 

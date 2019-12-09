@@ -590,7 +590,6 @@ vsong           = $5000
 
 vtemp1          = $00
 vtemp2          = $01
-vtemp3          = $02
 
                 rorg vplayer
 
@@ -714,7 +713,7 @@ vnewcmd:        iny
                 bcc vrest
 vcheckhr:       bmi vrest
 vhrparam:       lda #$00
-                sta $d406,x
+                sta vchnsr,x
                 lda #$fe
                 sta vchngate,x
 vrest:
@@ -774,14 +773,14 @@ vskipnote:      ldy vchncmd,x
                 bmi vlegatocmd
                 lda vcmdad-1,y
                 sta $d405,x
+                lda vcmdsr-1,y
+                sta vchnsr,x
                 bcc vskipgate
                 lda #$ff
                 sta vchngate,x
-vfirstwave:     lda #$09
+vfirstwave:     lda #$08
                 sta $d404,x
-vskipgate:      lda vcmdsr-1,y
-                sta $d406,x
-vskipadsr:      lda vcmdwavepos-1,y
+vskipgate:      lda vcmdwavepos-1,y
                 beq vskipwave
                 sta vchnwavepos,x
                 lda #$00
@@ -800,7 +799,7 @@ vskipfilt:      rts
 vlegatocmd:     tya
                 and #$7f
                 tay
-                bpl vskipadsr
+                bpl vskipgate
 
         ;Pulse execution
 
@@ -864,11 +863,12 @@ vwavejumpdone:  lda vnotetbl-1,y
                 bcs vabsfreq
                 adc vchnnote,x
 vabsfreq:       tay
-                jmp vnotenum
+                bne vnotenum
 
         ;Slide finished
 
-vslidedone:     lda vchnwaveold,x
+vslidedone:     ldy vchnnote,x
+                lda vchnwaveold,x
                 sta vchnwavepos,x
 vnotenum:       lda vfreqtbl-24,y
                 sta vchnfreqlo,x
@@ -879,6 +879,8 @@ vstorefreqhi:   sta $d401,x
 vwavedone:      lda vchnwave,x
                 and vchngate,x
                 sta $d404,x
+                lda vchnsr,x
+                sta $d406,x
                 rts
 
         ;Slide or vibrato
@@ -897,11 +899,11 @@ vslide:         ldy vchnnote,x
                 pha
                 lda vchnfreqhi,x
                 sbc vfreqtbl-23,y
-                sta vtemp3
+                tay
                 pla
                 bcs vslidedown
 vslideup:       adc vtemp2
-                lda vtemp3
+                tya
                 adc vtemp1
                 bcs vslidedone
 vfreqadd:       lda vchnfreqlo,x
@@ -912,7 +914,7 @@ vfreqadd:       lda vchnfreqlo,x
                 adc vtemp1
                 jmp vstorefreqhi
 vslidedown:     sbc vtemp2
-                lda vtemp3
+                tya
                 sbc vtemp1
                 bcc vslidedone
 vfreqsub:       lda vchnfreqlo,x
@@ -973,16 +975,15 @@ vchnfreqlo:     dc.b 0
 vchnfreqhi:     dc.b 0
 vchnpulse:      dc.b 0
 vchnwaveold:    dc.b 0
-                dc.b 0
+vchnsr:         dc.b 0
                 dc.b 0
                 dc.b 0
 
                 dc.b 0,0,0,0,0,0,0
-                dc.b 0,0,0,0
+                dc.b 0,0,0,0,0
 
                 rend
 
 playerend:
-
 
 

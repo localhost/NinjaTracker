@@ -60,7 +60,28 @@ playtestnote:   cmp #KEYOFF
                 bcc ptnskip
                 ldx playflag
                 bne ptnskip
-                pha
+                sta var1
+                ldy tracknum
+                ldx chnregindex,y
+                lda testnotecmd
+                sta nt_chncmd,x
+                bmi ptnskiphr
+                jsr ptnwait
+                lda hrparam
+                sta nt_chnsr,x
+                lda #$fe
+                sta nt_chngate,x
+ptnskiphr:      jsr ptnwait
+                lda var1
+                lsr
+                sta nt_chnnewnote,x
+                lda #$00
+                sta nt_chncounter,x
+                jsr ptnwait
+                lda #$ff
+                sta nt_chnnewnote,x
+ptnskip:        rts
+
 ptnwait:        lda $d011
                 bpl ptnwait
 ptnwait2:       lda $d011
@@ -68,33 +89,7 @@ ptnwait2:       lda $d011
 ptnwait3:       lda $d012
                 cmp #RASTERPOS
                 bcc ptnwait3
-                pla
-                ldy tracknum
-                ldx chnregindex,y
-                lsr
-                sta nt_chnnewnote,x
-                lda testnotecmd
-                sta nt_chncmd,x
-                bmi ptnskiphr
-                lda hrparam
-                sta $d406,x
-                pha
-                pla
-                pha
-                pla
-                pha
-                pla
-                lda #$fe
-                sta nt_chngate,x
-                and nt_chnwave,x
-                sta $d404,x
-ptnskiphr:      lda #$00
-                sta nt_chncounter,x
-ptnwait4:       lda nt_chncounter,x
-                beq ptnwait4
-                lda #$ff
-                sta nt_chnnewnote,x
-ptnskip:        rts
+                rts
 
 silencetestnote:lda playflag
                 bne ptnskip
@@ -109,6 +104,13 @@ silenceall:     lda #$fe
                 sta nt_chngate+7
                 sta nt_chngate+14
                 lda #$00
+                sta nt_chnsr
+                sta nt_chnsr+7
+                sta nt_chnsr+14
+                rts
+
+
+   lda #$00
                 sta $d406
                 sta $d406+7
                 sta $d406+14
