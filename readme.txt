@@ -270,9 +270,3 @@ V2.03 - Hardrestart is 2 frames + 1 silent frame for note init ("hifi" style)
         a delayed arpeggio step anymore
 
 V2.04 - Reset transpose when a subtune is played from the beginning
-MC note entry modes are switchable
-
-V2.02 - Hardrestart is now 2 frames by default (init waveform has gatebit off)
-      - Zeropage use reduced to 2 bytes
-      - Table editor limits absolute arpeggio notes to valid range
-
