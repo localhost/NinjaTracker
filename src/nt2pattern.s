@@ -2,26 +2,19 @@
 ; Pattern editor
 ;-------------------------------------------------------------------------------
 
-switchkeymode:  lda keymode
-                eor #$01
-                sta keymode
-                lda #$06
-                sta $d020
-                rts
-
 nextoctave:     jsr nameeditcheck
                 inc octave
                 lda octave
                 cmp #MAX_OCTAVE+1
                 bcc nextoctok
-                lda #MIN_OCTAVE
+                lda #MAX_OCTAVE
                 sta octave
 nextoctok:      rts
 
 prevoctave:     jsr nameeditcheck
                 dec octave
                 bne prevoctok
-                lda #MAX_OCTAVE
+                lda #MIN_OCTAVE
                 sta octave
 prevoctok:      rts
 
@@ -218,23 +211,7 @@ ptednote:       lda key
                 beq ptedkeyoff
                 cmp #KEY_SHIFTSPACE
                 beq ptedkeyon
-                ldy keymode
-                beq ptedprotracker
-pteddmcoctave:  cmp #"1"
-                bcc pteddmcnooct
-                cmp #"7"+1
-                bcs pteddmcnooct
-                sec
-                sbc #"0"
-                sta octave
-                rts
-pteddmcnooct:   ldx #MAX_DMCPIANOKEYS-1
-pteddmcsearch:  cmp dmckeytbl,x
-                beq ptednotefound
-                dex
-                bpl pteddmcsearch
-                rts
-ptedprotracker: ldx #MAX_PTPIANOKEYS-1
+                ldx #MAX_PTPIANOKEYS-1
 ptedptsearch:   cmp ptkeytbl,x
                 beq ptednotefound
                 dex
@@ -864,7 +841,7 @@ cdloop1:        lda nt_patttbllo,x
 cdloop2:        lda (destlo),y
                 beq cdnextpatt
                 cmp #$c0
-                bcc cdnodur 
+                bcc cdnodur
                 clc
                 adc var1
                 bne cddurnothigh

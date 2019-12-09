@@ -16,10 +16,10 @@ dmloop1:        ldx #0
                 jsr setxy
                 jsr printtextcont
                 lda normalcol
-                sta textcolor                
+                sta textcolor
                 inc var1
                 ldy var1
-                cpy #11
+                cpy #13                 ;Number of lines
                 bcc dmloop1
                 jsr clearbottomrow
                 ldx #0
@@ -81,7 +81,15 @@ dm_noerase:     cmp #"D"
                 bne dm_nodir
                 jsr directory
                 jmp diskmenu
-dm_nodir:       cmp #"G"
+dm_nodir:       cmp #"O"
+                bne dm_nocolsload
+                jsr loadcolors
+                jmp dm_exitmenu
+dm_nocolsload:  cmp #"Q"
+                bne dm_nocolssave
+                jsr savecolors
+                jmp dm_wait
+dm_nocolssave:  cmp #"G"
                 bne dm_noglobals
                 jsr globalsettings
                 jmp diskmenu2
@@ -326,6 +334,71 @@ savecommon:     lda #15
                 jsr open
                 ldx #$02
                 jmp chkout
+
+;-------------------------------------------------------------------------------
+; Load colors
+;-------------------------------------------------------------------------------
+
+loadcolors:     lda #<bgcol
+                sta destlo
+                lda #>bgcol
+                sta desthi
+                lda #MSG_LOADCOLS
+                jsr askname
+                lda namelength
+                bne loadcolok
+                rts
+loadcolok:      lda #$02
+                ldy #$00
+                ldx drivenumber
+                jsr setlfs
+                lda namelength
+                ldx #<name
+                ldy #>name
+                jsr setnam
+                jsr open
+                ldx #$02
+                jsr chkin
+                jsr chrin               ;skip load address lo
+                ldx status
+                bne loadcolerror
+                jsr chrin               ;skip load address ho
+                ldx #$00
+loadcolbyte:    jsr loadbyte
+                and #$0f
+                sta bgcol,x
+                inx
+                cpx #MAX_COLORS
+                bne loadcolbyte
+                jsr loadfileend
+                rts
+loadcolerror:   jmp loaderror
+
+;-------------------------------------------------------------------------------
+; Save colors
+;-------------------------------------------------------------------------------
+
+savecolors:     lda #MSG_SAVECOLS
+                jsr askname
+                lda namelength
+                bne savecolsok
+                rts
+savecolsok:     jsr stop
+                jsr savecommon
+                lda #<bgcol
+                sta destlo
+                jsr savebyte
+                lda #>bgcol
+                sta desthi
+                jsr savebyte
+                ldx #$00
+savecolsbyte:   lda bgcol,x
+                and #$0f
+                jsr savebyte
+                inx
+                cpx #MAX_COLORS
+                bne savecolsbyte
+savecolsdone:   jmp loaderror
 
 ;-------------------------------------------------------------------------------
 ; Erase a file

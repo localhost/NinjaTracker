@@ -95,12 +95,13 @@ cmdkeytbl:      dc.b KEY_LEFT,<cmdleft,>cmdleft
                 dc.b 0
 
 generalkeytbl:  dc.b KEY_F1,<playstart,>playstart
-                dc.b KEY_F3,<stop,>stop
-                dc.b KEY_F4,<switchkeymode,>switchkeymode
-                dc.b KEY_F5,<playpos,>playpos
-                dc.b KEY_F7,<togglefastfwd,>togglefastfwd
+                dc.b KEY_F2,<togglefastfwd,>togglefastfwd
+                dc.b KEY_F3,<playpos,>playpos
+                dc.b KEY_F4,<stop,>stop
+                dc.b KEY_F5,<onlinehelp,>onlinehelp
                 dc.b KEY_F6,<adjustcolors,>adjustcolors
-                dc.b KEY_F8,<onlinehelp,>onlinehelp
+                dc.b KEY_F7,<nextoctave,>nextoctave
+                dc.b KEY_F8,<prevoctave,>prevoctave
                 dc.b KEY_LEFTARROW,<diskmenu,>diskmenu
                 dc.b $21,<edittrk,>edittrk
                 dc.b $22,<edittrk,>edittrk
@@ -112,10 +113,6 @@ generalkeytbl:  dc.b KEY_F1,<playstart,>playstart
                 dc.b $28,<editcmd,>editcmd
                 dc.b "<",<gofastup,>gofastup
                 dc.b ">",<gofastdown,>gofastdown
-                dc.b ",",<prevoctave,>prevoctave
-                dc.b ".",<nextoctave,>nextoctave
-                dc.b "[",<prevoctave,>prevoctave
-                dc.b "]",<nextoctave,>nextoctave
                 dc.b "/",<silenceall,>silenceall
                 dc.b 0
 
@@ -123,11 +120,12 @@ namemsgtbl:     dc.w loadtext
                 dc.w savetext
                 dc.w erasetext
                 dc.w packertext
+                dc.w loadcolstext
+                dc.w savecolstext
 
-namemsglentbl:  dc.b 10,10,11,15
+namemsglentbl:  dc.b 10,10,11,15,12,12
 
 ptkeytbl:       dc.b "ZSXDCVGBHNJMQ2W3ER5T6Y7UI9O0P"
-dmckeytbl:      dc.b "AWSEDFTGYHUJKOLP"
 
         ;Instruction table for relocation
         ;0 = 2 byte instr., zeropage relocation
@@ -306,7 +304,7 @@ asmtable:       dc.b $69,2 ;ADC immediate
                 dc.b $98,1 ;TYA
                 dc.b $ff,0 ;End of table
 
-notetbl:        
+notetbl:
                 repeat 7
                 dc.b 0,2,4,6,8,10,12,14,16,18,20,22
                 repend
@@ -378,6 +376,8 @@ disktext:       dc.b "Disk Menu",0
                 dc.b "E Erase File",0
                 dc.b "P Pack & Relocate",0
                 dc.b "G Global Settings",0
+                dc.b "O Load Colors",0
+                dc.b "Q Save Colors",0
                 dc.b "N Nuke Songdata",0
                 dc.b "X Exit NinjaTracker",0
 
@@ -390,6 +390,8 @@ loadtext:       dc.b "Load Song:",0
 savetext:       dc.b "Save Song:",0
 erasetext:      dc.b "Erase File:",0
 packertext:     dc.b "Output To File:",0
+loadcolstext:   dc.b "Load Colors:",0
+savecolstext:   dc.b "Save Colors:",0
 
 confirmtext:    dc.b "Confirm (Y/N)?",0
 
