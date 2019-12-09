@@ -2,7 +2,7 @@
 ; Online help text, goes partially under I/O and Kernal
 ;-------------------------------------------------------------------------------
 
-onlinehelptext: dc.b "NinjaTrackerV2.03 online help           "
+onlinehelptext: dc.b "NinjaTrackerV2.04 online help           "
                 dc.b "                                        "
                 dc.b "Press arrows up/down to scroll and any  "
                 dc.b "other key to exit.                      "

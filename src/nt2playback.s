@@ -9,6 +9,8 @@ playstart:      jsr getsongindex
                 sta nt_songtbl+3,x
                 adc worktracklen+1
                 sta nt_songtbl+4,x
+                lda #$9d                        ;Play from start, reset transpose
+                sta nt_resettrans
 playcommon:     jsr stop
                 lda #$00
                 sta timemin
@@ -33,6 +35,8 @@ playpos:        jsr getsongindex
                 adc worktracklen+1
                 adc worktrackstart+2
                 sta nt_songtbl+4,x
+                lda #$2c                        ;Play from pos, disable the
+                sta nt_resettrans               ;instruction to reset transpose
                 jmp playcommon
 
 stop:           lda #$00

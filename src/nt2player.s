@@ -36,6 +36,7 @@ nt_initchn:     lda nt_songtbl+2,y
                 lda #$ff
                 sta nt_chnnewnote,x
                 sta nt_chnduration,x
+nt_resettrans:  sta nt_chntrans,x
                 sta nt_initsongnum+1
                 rts
 

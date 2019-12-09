@@ -1,4 +1,4 @@
-NinjaTracker V2.03
+NinjaTracker V2.04
 ------------------
 
 Contents:
@@ -270,8 +270,8 @@ V2.03 - Hardrestart is 2 frames + 1 silent frame for note init ("hifi" style)
       - Slide goes to the last waveform/arpeggio step when finished, not to
         a delayed arpeggio step anymore  
 
-he last edited command also works in tables
-      - ProTracker and DMC note entry modes are switchable
+V2.04 - Reset transpose when a subtune is played from the beginning
+MC note entry modes are switchable
 
 V2.02 - Hardrestart is now 2 frames by default (init waveform has gatebit off)
       - Zeropage use reduced to 2 bytes

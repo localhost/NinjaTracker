@@ -628,6 +628,7 @@ vinitchn:       lda vsongtbl+2,y
                 lda #$ff
                 sta vchnnewnote,x
                 sta vchnduration,x
+                sta vchntrans,x
 vstoreinit:     sta vinitsongnum+1
                 rts
 
