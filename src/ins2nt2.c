@@ -39,17 +39,8 @@ int main(int argc, char **argv)
     printf("Usage: INS2NT2 <srcfile> <destfile> <options>\n"
            "-b Produce binary output\n"
            "-c Produce output in CovertScript format (deprecated)\n\n"
-           "Takes a GoatTracker V1 or V2 instrument and outputs the corresponding Ninja-\n"
-           "Tracker effect data as source code (default) or binary. Things that cannot be\n"
-           "converted and will result in an error:\n"
-           "- Waveforms greater than $81\n"
-           "- Relative notes\n"
-           "- Wavetable longer than 128 bytes\n"
-           "- Octave 0\n"
-           "Things that will be lost in conversion:\n"
-           "- Wavetable loops\n"
-           "- Pulsewidth modulation\n"
-           "- Filter effects\n");
+           "Takes a GoatTracker V1.x or V2.x instrument and outputs the corresponding\n"
+           "NinjaTracker V2.1+ effect data as source code (default) or binary.\n");
     return 1;
   }
 
@@ -131,7 +122,7 @@ int main(int argc, char **argv)
       filttable[c*2+1] = fread8(handle);
     pulse = (pulsetable[0] << 4) | (pulsetable[1] >> 4);
   }
-  if ((!memcmp(ident, "GTI3", 4)) || (!memcmp(ident, "GTI4", 4)))
+  if ((!memcmp(ident, "GTI", 3)) && (ident[3] >= '3'))
   {
     fileok = 1;
     instr.ad = fread8(handle);
@@ -180,11 +171,11 @@ int main(int argc, char **argv)
   }
 
   d = 0;
-  outputbyte(swapnybbles(pulse));
+  outputbyte(instr.sr);
   d++;
   outputbyte(instr.ad);
   d++;
-  outputbyte(instr.sr);
+  outputbyte(swapnybbles(pulse));
   d++;
 
   for (c = 0; c < MAX_TABLELEN; c++)
@@ -195,13 +186,19 @@ int main(int argc, char **argv)
       d++;
       break;
     }
+    if (wavetable[c*2] >= 0xf0)
+    {
+      printf("ERROR: Wavetable command found\n");
+      fclose(out);
+      return 1;
+    }
     if (wavetable[c*2+1] < 0x8c)
     {
       printf("ERROR: Relative note or octave 0 found\n");
       fclose(out);
       return 1;
     }
-    if (wavetable[c*2] > 0x81)
+    if ((wavetable[c*2] > 0x81) && (wavetable[c*2] < 0xe0))
     {
       printf("ERROR: Waveform greater than $81 found\n");
       fclose(out);
@@ -210,6 +207,7 @@ int main(int argc, char **argv)
     if (wavetable[c*2])
     {
       currwave = wavetable[c*2];
+      if (currwave > 0x81) currwave &= 0x0f;
     }
     outputbyte(wavetable[c*2+1]);
     d++;
@@ -243,7 +241,7 @@ void outputbyte(unsigned char c)
         fprintf(out, "        dc.b ");
       }
       else fprintf(out, ",");
-      fprintf(out, "$%02X", c);
+      fprintf(out, "$%02x", c);
       bytecount++;
       if (bytecount == 16)
       {
@@ -264,6 +262,18 @@ void outputbyte(unsigned char c)
       }
       bytecount++;
       fprintf(out, "0x%02x", c);
+    }
+  }
+}
+
+unsigned char swapnybbles(unsigned char n)
+{
+  unsigned char highnybble = n >> 4;
+  unsigned char lownybble = n & 0xf;
+
+  return (lownybble << 4) | highnybble;
+}
+
     }
   }
 }

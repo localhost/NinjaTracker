@@ -2,6 +2,13 @@
 ; Pattern editor
 ;-------------------------------------------------------------------------------
 
+switchkeymode:  lda keymode
+                eor #$01
+                sta keymode
+                lda #$06
+                sta $d020
+                rts
+
 nextoctave:     jsr nameeditcheck
                 inc octave
                 lda octave
@@ -205,16 +212,33 @@ pteddurhigh:    sta var2
                 clc
                 adc var2
                 jmp pteddurcommon
+
 ptednote:       lda key
                 cmp #KEY_SPACE
                 beq ptedkeyoff
                 cmp #KEY_SHIFTSPACE
                 beq ptedkeyon
-                ldx #MAX_PIANOKEYS-1
-ptednotesearch: cmp pianokeytbl,x
+                ldy keymode
+                beq ptedprotracker
+pteddmcoctave:  cmp #"1"
+                bcc pteddmcnooct
+                cmp #"7"+1
+                bcs pteddmcnooct
+                sec
+                sbc #"0"
+                sta octave
+                rts
+pteddmcnooct:   ldx #MAX_DMCPIANOKEYS-1
+pteddmcsearch:  cmp dmckeytbl,x
                 beq ptednotefound
                 dex
-                bpl ptednotesearch
+                bpl pteddmcsearch
+                rts
+ptedprotracker: ldx #MAX_PTPIANOKEYS-1
+ptedptsearch:   cmp ptkeytbl,x
+                beq ptednotefound
+                dex
+                bpl ptedptsearch
 ptednotedone:   rts
 ptednotefound:  stx var1
                 lda octave
@@ -718,9 +742,13 @@ wtop_nodur:     inx
 wtop_done:      lda #$00
                 sta (destlo),y
                 iny
-                cpy #MAX_PATTLEN
-                bcc wtop_done
-                lda alo
+                sty pattbytes
+wtop_clear:     cpy #MAX_PATTLEN
+                bcc wtop_cleardone
+                sta (destlo),y
+                iny
+                bne wtop_clear
+wtop_cleardone: lda alo
                 sta totaldurlo
                 lda ahi
                 sta totaldurhi
@@ -780,6 +808,8 @@ ptow_nodur:     inx
                 jsr add16
                 jmp ptow_loop
 ptow_end:       stx workpattlen
+                iny
+                sty pattbytes
                 lda alo
                 sta totaldurlo
                 lda ahi
@@ -795,4 +825,25 @@ ptow_gatectrl:  pha
                 iny
                 sta workpattcmd,x
                 jmp ptow_nocmd
+
+getpattdurpos:  lda #$00
+                sta alo
+                sta ahi
+                sta var1
+                tax
+gpdploop:       cpx pattrow
+                beq gpdpdone
+                lda workpattdur,x
+                beq gpdpnonew
+                sta var1
+gpdpnonew:      lda var1
+                jsr add16
+                inx
+                bne gpdploop
+gpdpdone:       lda alo
+                sta durposlo
+                lda ahi
+                sta durposhi
+                rts
+                                
 

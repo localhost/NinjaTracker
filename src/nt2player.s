@@ -184,10 +184,10 @@ nt_skipnote:    ldy nt_chncmd,x
                 lda nt_cmdad-1,y
                 sta $d405,x
                 bcc nt_skipgate
-nt_firstwave:   lda #$09
-                sta $d404,x
                 lda #$ff
                 sta nt_chngate,x
+nt_firstwave:   lda #$09
+                sta $d404,x
 nt_skipgate:    lda nt_cmdsr-1,y
                 sta $d406,x
 nt_skipadsr:    lda nt_cmdwavepos-1,y
@@ -285,8 +285,8 @@ nt_notenum:     lda nt_freqtbl-24,y
                 lda nt_freqtbl-23,y
 nt_storefreqhi: sta $d401,x
                 sta nt_chnfreqhi,x
-nt_wavedone:    lda nt_chngate,x
-                and nt_chnwave,x
+nt_wavedone:    lda nt_chnwave,x
+                and nt_chngate,x
                 sta $d404,x
                 rts
 

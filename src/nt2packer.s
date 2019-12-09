@@ -743,7 +743,7 @@ vgatectrl:      lsr
                 bcs vrest
 
         ;Pattern frame 2: duration, end of pattern, new note init / command exec
-  
+
 vnoendpatt:     tya
                 bne vstorepattpos
 vreload:        iny
@@ -775,10 +775,10 @@ vskipnote:      ldy vchncmd,x
                 lda vcmdad-1,y
                 sta $d405,x
                 bcc vskipgate
-vfirstwave:     lda #$09
-                sta $d404,x
                 lda #$ff
                 sta vchngate,x
+vfirstwave:     lda #$09
+                sta $d404,x
 vskipgate:      lda vcmdsr-1,y
                 sta $d406,x
 vskipadsr:      lda vcmdwavepos-1,y
@@ -876,8 +876,8 @@ vnotenum:       lda vfreqtbl-24,y
                 lda vfreqtbl-23,y
 vstorefreqhi:   sta $d401,x
                 sta vchnfreqhi,x
-vwavedone:      lda vchngate,x
-                and vchnwave,x
+vwavedone:      lda vchnwave,x
+                and vchngate,x
                 sta $d404,x
                 rts
 
@@ -983,5 +983,6 @@ vchnwaveold:    dc.b 0
                 rend
 
 playerend:
+
 
 

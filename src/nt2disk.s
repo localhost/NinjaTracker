@@ -849,12 +849,16 @@ oh_quit:        jmp initscreen
 ; Color scheme adjustment
 ;-------------------------------------------------------------------------------
 
-adjustcolors:   lda acnum
+adjustcolors:   ldx #17
+                lda #$20
+acclear:        sta $0400,x
+                dex
+                bpl acclear
+acloop:         lda acnum
                 asl
-                adc #31
                 tax
-                ldy #2
-                lda #$00
+                ldy #0
+                tya
                 jsr cursorpos
                 lda #MAX_COLORS-1
                 tax
@@ -865,9 +869,9 @@ acdisplay:      lda bgcol,x
                 tay
                 lda hexcodes,y
                 ldy var1
-                sta $0400+2*40+31,y
+                sta $0400,y
                 lda bgcol,x
-                sta $d800+2*40+31,y
+                sta $d800,y
                 dec var1
                 dec var1
                 dex
@@ -893,7 +897,7 @@ acnotright:     cmp #KEY_UP
                 ldx acnum
                 inc bgcol,x
 accommon:       jsr changecolors
-                jmp adjustcolors
+acnoexit:       jmp acloop
 acnotup:        cmp #KEY_DOWN
                 bne acnotdown
                 ldx acnum
@@ -904,15 +908,10 @@ acnotdown:      cmp #KEY_RETURN
                 cmp #KEY_RUNSTOP
                 beq acexit
                 cmp #KEY_F6
-                bne adjustcolors
+                bne acnoexit
 acexit:         lda #$00
                 sta $d015
-                ldx #8
-                lda #$20
-acclear:        sta $0400+2*40+31,x
-                dex
-                bpl acclear
-                rts
+                jmp changecolors2
 
 ;-------------------------------------------------------------------------------
 ; Get default device number
@@ -923,4 +922,6 @@ detectdevice:   lda fa                      ;Find out drive number
                 bcs driveok
                 lda #$08
 driveok:        sta drivenumber
+                rts
+ok:        sta drivenumber
                 rts

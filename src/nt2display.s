@@ -146,7 +146,8 @@ ptrk_empty:     lda emptycol
 ; Print pattern
 ;-------------------------------------------------------------------------------
 
-printpattern:   ldx #18
+printpattern:   jsr getpattdurpos
+                ldx #18
                 ldy #2
                 jsr setxy
                 lda titlecol
@@ -159,9 +160,19 @@ printpattern:   ldx #18
                 ldx #<patttext2
                 ldy #>patttext2
                 jsr printtext
+                ldx durposlo
+                ldy durposhi
+                jsr printdec16
+                lda #"/"
+                jsr printchar
                 ldx totaldurlo
                 ldy totaldurhi
                 jsr printdec16
+                ldx #<patttext3
+                ldy #>patttext3
+                jsr printtext
+                lda pattbytes
+                jsr printhex8
                 lda #0
                 sta var1
 ppt_loop:       lda var1

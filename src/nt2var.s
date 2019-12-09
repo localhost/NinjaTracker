@@ -50,7 +50,11 @@ pattcopylen:    dc.b 0
 workpattlen:    dc.b 0
 totaldurlo:     dc.b 0
 totaldurhi:     dc.b 0
+durposlo:       dc.b 0
+durposhi:       dc.b 0
+pattbytes:      dc.b 0
 testnotecmd:    dc.b 1
+keymode:        dc.b 0
 
 tblnum:         dc.b 0
 tblcol:         dc.b 0

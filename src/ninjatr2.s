@@ -1,7 +1,7 @@
 ;-------------------------------------------------------------------------------
-; NinjaTracker V2.0
+; NinjaTracker V2.01
 ;
-; Cadaver 8/2006
+; Cadaver 9/2006
 ;-------------------------------------------------------------------------------
 
                 processor 6502
@@ -13,7 +13,8 @@ MAX_CMDNAMELEN  = 9
 MAX_PATTLEN     = 192
 MAX_SONGLEN     = 256
 MAX_TBLLEN      = 255
-MAX_PIANOKEYS   = 29
+MAX_PTPIANOKEYS = 29
+MAX_DMCPIANOKEYS = 16
 MAX_RELOCITEMS  = 17
 MIN_OCTAVE      = 1
 MAX_OCTAVE      = 7
@@ -31,6 +32,9 @@ EM_PATTERN      = 1
 EM_TABLES       = 2
 EM_CMD          = 3
 EM_GENERAL      = 4
+
+N_PROTRACKER    = 0
+N_DMC           = 1
 
 MSG_LOAD        = 0
 MSG_SAVE        = 1

@@ -36,16 +36,24 @@ initscreen:     sta $d07a                   ;SCPU to slow mode
                 lda #$80
                 sta mode
                 jsr clearscreen
-changecolors:   lda bgcol
-                sta $d020
-                sta $d021
-                lda titlecol
+changecolors2:  lda titlecol
                 sta textcolor
                 ldx #0
                 ldy #0
                 jsr setxy
                 ldx #<titletext
                 ldy #>titletext
+                jsr printtext
+changecolors:   lda bgcol
+                sta $d020
+                sta $d021
+                lda titlecol
+                sta textcolor
+                ldx #18
+                ldy #0
+                jsr setxy
+                ldx #<statustext
+                ldy #>statustext
                 jsr printtext
                 jsr printstatus
                 jmp printall
@@ -79,20 +87,23 @@ N               set 0
                 sta $0802+N*3
 N               set N+1
                 repend
-                lda #$01
-                sta $d015
+                lda #$ff
+N               set 0
+                repeat 8
+                sta $0800+N*3
+N               set N+1
+                repend
+                sta $d01b                
                 lda #$00
                 sta $d01c
                 sta $d017
                 sta $d019
-                lda #$ff
-                sta $d01b
                 tya
                 asl
                 asl
                 asl
                 adc #50
-                sta $d001
+                tay
                 txa
                 asl
                 asl
@@ -100,8 +111,11 @@ N               set N+1
                 asl
                 sta $d000
                 lda #$00
-                adc #$00
+                rol
                 sta $d010
+                sty $d001
+                lda #$01
+                sta $d015
                 rts
 
 ;-------------------------------------------------------------------------------
@@ -214,14 +228,20 @@ printhex16:     txa
 ; X,Y=Value
 ;-------------------------------------------------------------------------------
 
-printdec16:     stx alo
+printdec16:     jsr pd16convert
+                lda ahi2
+                jsr printhex8
+                lda alo2
+                jmp printhex8
+
+pd16convert:    stx alo
                 sty ahi
                 lda #$00
                 sta alo2
                 sta ahi2
                 sed
                 ldx #16
-pdec16_loop:    asl alo
+pd16_loop:      asl alo
                 rol ahi
                 lda alo2
                 adc alo2
@@ -230,36 +250,20 @@ pdec16_loop:    asl alo
                 adc ahi2
                 sta ahi2
                 dex
-                bne pdec16_loop
+                bne pd16_loop
                 cld
-                lda ahi2
-                jsr printhex8
-                lda alo2
-                jmp printhex8
+                rts
 
 ;-------------------------------------------------------------------------------
-; Print 8bit value as decimal (2 digits only)
+; Print 8bit value as decimal
 ; A=Value
 ;-------------------------------------------------------------------------------
 
-printdec8:      ldy #10
-                jsr divu
-                pha
-                ldx alo
+printdec8:      tax
                 ldy #$00
-                lda hexcodes,x
-                sta (scrlo),y
-                lda textcolor
-                sta (colorlo),y
-                pla
-                tax
-                iny
-                lda hexcodes,x
-                sta (scrlo),y
-                lda textcolor
-                sta (colorlo),y
-                lda #$02
-                jmp skipchars
+                jsr pd16convert
+                lda alo2
+                jmp printhex8
 
 ;-------------------------------------------------------------------------------
 ; Print single hexadecimal digit

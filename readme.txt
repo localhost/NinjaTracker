@@ -1,10 +1,10 @@
-NinjaTracker V2.0
------------------
+NinjaTracker V2.01
+------------------
 
 Contents:
 
-ninjatr2.d64
-- Disk image with the editor itself and example tunes 
+ninjatr201.d64
+- Disk image with the editor itself and example tunes
 
 example.prg
 - Gamemusic player example program
@@ -24,11 +24,11 @@ ins2nt2.exe
 
 1. Introduction
 
-NinjaTracker V2.0 is still a somewhat minimal music editor. Main differences to
+NinjaTracker V2.x is still a somewhat minimal music editor. Main differences to
 previous versions are general purpose commands (or instruments), two-column
 tables and a slide function that knows to stop at the target pitch.
 
-NinjaTracker is freeware; customization is allowed and recommended.
+Customization is allowed and encouraged!
 
 www: http://covertbitops.c64.org
 email: loorni@gmail.com
@@ -36,19 +36,20 @@ email: loorni@gmail.com
 
 
 2. How to use
-                                        
-2.1 General keys                        
+
+2.1 General keys
 
   F1          Play from beginning
   F3          Stop playing
+  F4          Switch note entry (PT/DMC)
   F5          Play from mark
   F6          Adjust colors
   F7          Toggle fastforward
   F8          Enter help screen
   <-          Enter disk menu
   /           Silence test notes
-  < >         Fast scroll up/down  
-  [ ] or , .  Select octave
+  <>          Fast scroll up/down
+  [] or ,.    Select octave
   0-9,A-F     Edit hexadecimal data
   Cursors     Move around
   Ins/Del     Delete rows
@@ -60,19 +61,22 @@ email: loorni@gmail.com
   Shift+5,6,7 Switch to tables
   Shift+8     Switch to commands
   Return      Goto pattern/table/command
-  Shift+Ret.  Point and goto next unused pattern/table/command
+  Shift+Ret.  Point and goto next unused
+              pattern/table/command
 
 2.2 Track editor special keys
 
-  ; :         Select subtune
+  ;:          Select subtune
   Space       Mark playing position
 
 2.3 Pattern editor special keys
 
-  ; :         Select pattern
-  - +         Select command number
-  ZSXDCVGBH.. Enter lower octave notes
-  Q2W3ER5T6.. Enter upper octave notes
+  ;:          Select pattern
+  -+          Select command number
+  1-7         Select octave (DMC)
+  AWSEDFTGY.. Enter notes (DMC)
+  ZSXDCVGBH.. Lower octave notes (PT)
+  Q2W3ER5T6.. Upper octave notes (PT)
   Space       Enter keyoff/clear column
   Shift+Space Enter keyon
   Shift+Q     Transpose halfstep down
@@ -126,8 +130,8 @@ A note can range from C-1 to B-7. A note without a command number will use the
 last used command. Similarly, if the duration column is empty, the last used
 duration will apply.
 
-Command numbers 81-FF are the commands 01-7F called in legato mode. In legato 
-mode hardrestart, init frame waveform setup and auto-keyon will be skipped (when 
+Command numbers 81-FF are the commands 01-7F called in legato mode. In legato
+mode hardrestart, init frame waveform setup and auto-keyon will be skipped (when
 used with a note), as well as ADSR setup; only the table pointers are set.
 
 Duration minimum is 2 and maximum is 65. However, for the last step of a pattern
@@ -151,7 +155,7 @@ Wavetable left side values:
   90-BF No waveform, delay arpeggio by 00-2F frames
   C0-DF Vibrato with speed 00-1F, right side is depth
   E0-FE Slide with speed highbyte 00-1E, right side is speed lowbyte
-  FF    Jump, right side is destination, not to be entered directly from a 
+  FF    Jump, right side is destination, not to be entered directly from a
         command
 
 Vibrato continues indefinitely. For a delay before vibrato starts, a delayed
@@ -212,7 +216,7 @@ Reading pattern data for a new pattern step is split on 2 frames just before
 the new step begins. During this time, pulsetable execution is skipped if the
 channel has a running wavetable program.
 
-Command execution and new note init is performed on the latter of those frames. 
+Command execution and new note init is performed on the latter of those frames.
 During that, both pulsetable and wavetable execution are skipped.
 
 To minimize the effect of optimizations use as long note durations as possible.
@@ -241,3 +245,16 @@ player code and change the value of the ORA instruction.
 
 See the included example tunes to best find out how this music system works in
 practice. Good luck, and have fun!
+
+
+
+Version history
+
+V2.0  - Original
+
+V2.01 - Gamemusic sound effect routine optimized
+      - ins2nt2 updated for different data ordering
+      - Current time position in pattern is shown alongside total duration
+      - Packed size ("Ps") of pattern is shown in hexadecimal
+      - Testing the last edited command also works in tables
+      - ProTracker and DMC note entry modes are switchable

@@ -70,6 +70,8 @@ tblkeytbl:      dc.b KEY_RETURN,<followjump,>followjump
                 dc.b KEY_DOWN,<tbldown,>tbldown
                 dc.b KEY_INS,<tblins,>tblins
                 dc.b KEY_DEL,<tbldel,>tbldel
+                dc.b KEY_SHIFTSPACE,<cmtest,>cmtest
+                dc.b KEY_SPACE,<cmkeyoff,>cmkeyoff
                 dc.b "M"+$80,<marktbl,>marktbl
                 dc.b "X"+$80,<cuttbl,>cuttbl
                 dc.b "C"+$80,<copytbl,>copytbl
@@ -94,6 +96,7 @@ cmdkeytbl:      dc.b KEY_LEFT,<cmdleft,>cmdleft
 
 generalkeytbl:  dc.b KEY_F1,<playstart,>playstart
                 dc.b KEY_F3,<stop,>stop
+                dc.b KEY_F4,<switchkeymode,>switchkeymode
                 dc.b KEY_F5,<playpos,>playpos
                 dc.b KEY_F7,<togglefastfwd,>togglefastfwd
                 dc.b KEY_F6,<adjustcolors,>adjustcolors
@@ -123,7 +126,8 @@ namemsgtbl:     dc.w loadtext
 
 namemsglentbl:  dc.b 10,10,11,15
 
-pianokeytbl:    dc.b "ZSXDCVGBHNJMQ2W3ER5T6Y7UI9O0P"
+ptkeytbl:       dc.b "ZSXDCVGBHNJMQ2W3ER5T6Y7UI9O0P"
+dmckeytbl:      dc.b "AWSEDFTGYHUJKOLP"
 
         ;Instruction table for relocation
         ;0 = 2 byte instr., zeropage relocation
@@ -355,11 +359,13 @@ emptycmdname:   ds.b MAX_CMDNAMELEN," "
 
 emptyrowtext:   dc.b "                                        ",0
 
-titletext:      dc.b "NinjaTracker V2.0 Sng  Oct        Ras / ",0
+titletext:      dc.b "NinjaTrackerV2.01",0
+statustext:     dc.b "Sng  Oct        Ras / ",0
 
 tracktext:      dc.b "Trk 1 Trk 2 Trk 3",0
 patttext1:      dc.b "Patt",0
 patttext2:      dc.b " D",0
+patttext3:      dc.b " Ps",0
 tbltext:        dc.b "Wave Tbl Puls Tbl Filt Tbl",0
 cmdtext:        dc.b "Commands",0
 

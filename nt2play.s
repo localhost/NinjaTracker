@@ -1,7 +1,7 @@
 ;-------------------------------------------------------------------------------
-; NinjaTracker V2.0 gamemusic playroutine
+; NinjaTracker V2.01 gamemusic playroutine
 ;
-; Cadaver 8/2006
+; Cadaver 9/2006
 ;-------------------------------------------------------------------------------
 
 ;-------------------------------------------------------------------------------
@@ -21,6 +21,11 @@ NT_ADDCMD          = $0c
 NT_ADDLEGATOCMD    = $10
 NT_ADDPATT         = $14
 
+NT_HRPARAM         = $00
+NT_FIRSTWAVE       = $09
+NT_SFXHRPARAM      = $00
+NT_SFXFIRSTWAVE    = $09
+
 ;-------------------------------------------------------------------------------
 ; Zeropage work area. 3 consecutive addresses are needed.
 ;-------------------------------------------------------------------------------
@@ -34,7 +39,7 @@ nt_temp3        = nt_zpbase+2
 ; NT_NEWMUSIC
 ;
 ; Call to set correct musicdata accesses within the playroutine. Needed before
-; first playing or each time after loading new musicdata. Note that while this 
+; first playing or each time after loading new musicdata. Note that while this
 ; is running, do not let your interrupt call NT_MUSIC, as both share the same
 ; zeropage variables.
 ;
@@ -131,6 +136,16 @@ nt_playsong:    sta nt_initsongnum+1
 ; Call to start a sound effect on a channel. Has a built in priority system:
 ; a sound at higher memory address can interrupt one that is lower, but not the
 ; other way around.
+;
+; Sounds can be converted from GT1.xx or GT2.xx instruments with the ins2nt2
+; utility, or created by following this dataformat:
+;
+; - Sustain/Release
+; - Attack/Decay
+; - Pulsewidth, with nybbles reversed (pulse 400 = $04)
+; - Note,Wave pairs for each frame of the sound (note ranges from $8C to $DF,
+;   wave from $01 to $81). If waveform stays the same, it can be omitted
+; - End with $00
 ;
 ; Parameters: A:Sound effect address lobyte
 ;             X:Sound effect address hibyte
@@ -235,7 +250,7 @@ nt_newcmd:      iny
 nt_checkhr:     bmi nt_rest
                 ldy nt_chnsfx,x
                 bne nt_jumptosfx
-nt_hrparam:     lda #$00
+                lda #NT_HRPARAM
                 sta $d406,x
 nt_skipsr:      lda #$fe
                 sta nt_chngate,x
@@ -287,10 +302,10 @@ nt_skipnote:    ldy nt_chncmd,x
 nt_cmdadm1:     lda $1000,y
                 sta $d405,x
                 bcc nt_skipgate
-nt_firstwave:   lda #$09
-                sta $d404,x
                 lda #$ff
                 sta nt_chngate,x
+                lda #NT_FIRSTWAVE
+                sta $d404,x
 nt_skipgate:
 nt_cmdsrm1:     lda $1000,y
                 sta $d406,x
@@ -382,8 +397,8 @@ nt_notenum:     lda nt_freqtbl-24,y
                 lda nt_freqtbl-23,y
 nt_storefreqhi: sta $d401,x
                 sta nt_chnfreqhi,x
-nt_wavedone:    lda nt_chngate,x
-nt_wavedone2:   and nt_chnwave,x
+nt_wavedone:    lda nt_chnwave,x
+                and nt_chngate,x
                 sta $d404,x
                 rts
 nt_slideorvib:  sbc #$e0
@@ -411,6 +426,9 @@ nt_freqadd:     lda nt_chnfreqlo,x
                 lda nt_chnfreqhi,x
                 adc nt_temp1
                 jmp nt_storefreqhi
+nt_sfxhr:       lda #NT_SFXHRPARAM
+                sta $d406,x
+                bcc nt_wavedone
 nt_slidedown:   sbc nt_temp2
                 lda nt_temp3
                 sbc nt_temp1
@@ -442,7 +460,6 @@ nt_sfxexec:     lda nt_chnsfxlo,x
                 lda #$fe
                 sta nt_chnnewnote,x
                 sta nt_chngate,x
-                lda #$00
                 inc nt_chnsfx,x
                 cpy #$02
                 beq nt_sfxinit
@@ -463,24 +480,22 @@ nt_sfxnoend:    asl
                 inc nt_chnsfx,x
 nt_sfxwavechg:  sta $d404,x
                 sta nt_chnwave,x
+                bcc nt_sfxdone
+                lda (nt_temp1),y
+                sta $d406,x
 nt_sfxdone:     rts
 nt_sfxend:      sta nt_chnsfx,x
                 sta nt_chnwavepos,x
                 beq nt_sfxwavechg
-nt_sfxinit:     tay
-                lda (nt_temp1),y
+nt_sfxinit:     lda (nt_temp1),y
                 sta $d402,x
                 sta $d403,x
-                iny
+                dey
                 lda (nt_temp1),y
                 sta $d405,x
-                iny
-                lda (nt_temp1),y
-                sta $d406,x
-                lda #$09
-                bne nt_sfxwavechg
-nt_sfxhr:       sta $d406,x
-                jmp nt_wavedone
+                dey
+                lda #NT_SFXFIRSTWAVE
+                bcs nt_sfxwavechg
 
 ;-------------------------------------------------------------------------------
 ; Playroutine data
